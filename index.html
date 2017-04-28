@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PEOPLES Framework</title>
+
+    <!-- INCLUDO SEMANTIC-UI E JQUERY -->
+    <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
+
+    <!--<link rel="stylesheet" href="mathscribe/jqmath-0.4.3.css">
+    <script src="mathscribe/jqmath-etc-0.4.6.min.js" charset="utf-8"></script>-->
+
+    <script src="chartjs/dist/Chart.min.js" charset="UTF-8"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+
+    <script type="application/javascript">
+        $(document).ready(function() {
+
+            var ctx = $("#chart41");
+
+            var scatterChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                                    lineTension: 0.5,
+                                    borderColor: "red",
+                                    fill : false,
+                                    pointRadius: 1,
+                                    pointHitRadius: 1,
+                                    pointHoverRadius: 1,
+                                    data: [ {x: 0, y: 10},
+                                            {x: 10, y: 20},
+                                            {x: 20, y: 10},
+                                            {x: 30, y: 40}]
+                                }]
+                            },
+                options: {
+                    maintainAspectRatio : false,
+                    legend : {
+                        display : false
+                    },
+                    tooltips: {
+                        enabled : false
+                    },
+                    scales: {
+                        xAxes: [{
+                            type: 'linear',
+                            position: 'bottom',
+                            ticks: {
+                                min: 0
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                max: 100,
+                                min: 0,
+                                stepSize: 10
+                            }
+                        }]
+                    }
+                }
+            });
+
+        });
+
+    </script>
+</head>
+<body>
+
+
+<div class="ui visible very inverted vertical sidebar menu mainmenu">
+    <a class="active item">
+        <i class="users icon"></i> Population and demographics
+    </a>
+    <a class="item">
+        <i class="tree icon"></i> Ecosystem and environmental
+    </a>
+    <a class="item">
+        <i class="travel icon"></i> Organized governmental services
+    </a>
+    <a class="item">
+        <i class="building outline icon"></i> Physical infrastructure
+    </a>
+    <a class="item">
+        <i class="university icon"></i> Lifestyle and community competence
+    </a>
+    <a class="item">
+        <i class="money icon"></i> Economic development
+    </a>
+    <a class="item">
+        <i class="map outline icon"></i> Social-cultural capital
+    </a>
+</div>
+
+<div class="ui grid maingrid">
+    <div class="maincontent">
+        <h2 class="ui header component">
+            <i class="icon">4.1</i>
+            <div class="content">
+                Facilities
+                <div class="sub header">Importance: 2</div>
+            </div>
+        </h2>
+
+        <table class="ui red table indicator">
+            <thead>
+                <tr>
+                    <th>Index</th>
+                    <th>Indicator</th>
+                    <th>I</th>
+                    <th>Nat</th>
+                    <th>q<sub>0u</sub></th>
+                    <th>SV</th>
+                    <th>q<sub>0</sub></th>
+                    <th>q<sub>1</sub></th>
+                    <th>q<sub>r</sub></th>
+                    <th>T<sub>r</sub></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>4.1.1</td>
+                    <td>Average number of Internet, television, radio, telephone, and telecommunications broadcasters per household ÷ SV</td>
+                    <td>3</td>
+                    <td>D</td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="q0u" value="1">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="SV" value="1">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="q0" value="1">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="q1" value="0.599">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="qr" value="0.988">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ui fluid input number">
+                            <input type="text" placeholder="Tr" value="120">
+                        </div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+
+        <div class="grafico">
+            <canvas id="chart41"></canvas>
+        </div>
+    </div>
+
+
+</div>
+
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+/**
+Main Menu
+ */
+.mainmenu a {
+    line-height: 20px;
+}
+
+.ui.sidebar.menu.mainmenu {
+    width: 200px;
+}
+
+.ui.maingrid {
+    margin: 0;
+    margin-left: 200px;
+}
+
+.ui.maingrid .maincontent {
+    margin-left: 2%;
+    width: 96%;
+}
+
+.ui.table.indicator {
+    padding: 0;
+    width: 100%;
+
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.ui.table.indicator thead {
+    width: 100%;
+}
+
+.ui.table.indicator th sub {
+    font-weight: 800;
+}
+
+.ui.table.indicator .ui.input.number {
+    min-width: 50px;
+}
+
+.ui.table.indicator .ui.input.number input {
+    text-align: center;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 2px;
+    padding-right: 2px;
+    min-width: 50px;
+}
+
+.ui.table.indicator .checkbox {
+    width: 15px;
+}
+
+.ui.header.component {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.maincontent .grafico {
+    width: 50%;
+    height: 250px;
+}
