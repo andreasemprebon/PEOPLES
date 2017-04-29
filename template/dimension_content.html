@@ -1,0 +1,40 @@
+<div class="ui grid maingrid dim-{{__DIM_ID__}}" style="display: none;">
+    <div class="maincontent">
+        <h3 class="ui header component">
+            <i class="icon {{__COLOR__}}">{{__ID__}}</i>
+            <div class="content ">
+                <span class="text {{__COLOR__}}">{{__NAME__}}</span>
+                <div class="sub header">Importance: {{__IMPORTANCE__}}</div>
+            </div>
+        </h3>
+
+        <table class="ui {{__COLOR__}} striped very compact table indicator">
+            <thead>
+            <tr>
+                <th>Index</th>
+                <th>Indicator</th>
+                <th>Measure</th>
+                <th>I</th>
+                <th>Nat</th>
+                <th class="center">q<sub>0u</sub></th>
+                <th class="center">SV</th>
+                <th class="center">q<sub>0</sub></th>
+                <th class="center">q<sub>1</sub></th>
+                <th class="center">q<sub>r</sub></th>
+                <th class="center">T<sub>r</sub></th>
+            </tr>
+            </thead>
+            <tbody>
+
+                {{__INDICATORS_CONTENT__}}
+
+            </tbody>
+        </table>
+
+        <div class="grafico">
+            <canvas id="chart_{{__ID_FOR_HTML__}}" data-color="{{__COLOR_CODE__}}"></canvas>
+        </div>
+    </div>
+
+
+</div>

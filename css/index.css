@@ -52,6 +52,10 @@ Main Menu
     width: 15px;
 }
 
+.ui.table.indicator .center{
+    text-align: center;
+}
+
 .ui.header.component {
     margin-top: 10px;
     margin-bottom: 10px;
