@@ -26,7 +26,17 @@ $handle = fopen($filename, "r");
 $indicator_content = fread($handle, filesize($filename));
 fclose($handle);
 
+/**
+ * In questa varibale è salvato tutto l'HTML del sistema,
+ * prima che venga stampato a scherm
+ */
 $html = "";
+
+/**
+ * Contiene un array associativo che verrà caricato in javascript
+ * per gestire i vari indicatori
+ */
+$js_indicators_array = "{ ";
 
 $color_array = array(   "red"       => "#D95C5C",
                         "orange"    => "#E07B53",
@@ -47,36 +57,55 @@ foreach ($dimensions as $dim_id => $dim) {
 
     $html .= '<div id="dim_' . $dim['id'] . '">';
 
+    $js_indicators_array .= $dim_id . ': { ';
+
     $color_array_index = 0;
     foreach ($dim['components'] as $com_id => $com) {
 
+        $js_indicators_array .= $com_id . ': { ';
+
+        // Preparo l'ID stile HTML, con - al posto di .
         $com_id_for_html = str_replace(".", "-", $com['id']);
 
-        $com_html = str_replace("{{__NAME__}}",         $com['name'],       $dimension_content);
-        $com_html = str_replace("{{__ID__}}",           $com['id'],         $com_html);
-        $com_html = str_replace("{{__ID_FOR_HTML__}}",  $com_id_for_html,   $com_html);
-        $com_html = str_replace("{{__IMPORTANCE__}}",   $com['importance'], $com_html);
-        $com_html = str_replace("{{__DIM_ID__}}",       $dim['id'],         $com_html);
-
+        // Preparo nome e codice dei colori
         $color_name = $color_array_names[ $color_array_index % $color_array_size ];
         $color_code = $color_array[ $color_name ];
         $color_array_index++;
-        $com_html = str_replace("{{__COLOR__}}",        $color_name, $com_html);
-        $com_html = str_replace("{{__COLOR_CODE__}}",   $color_code, $com_html);
+
+        $com_html = $dimension_content;
+
+        $com_replace = array(   '{{__NAME__}}'          => $com['name'],
+                                '{{__ID__}}'            => $com['id'],
+                                '{{__ID_FOR_HTML__}}'   => $com_id_for_html,
+                                '{{__IMPORTANCE__}}'    => $com['importance'],
+                                '{{__DIM_ID__}}'        => $dim['id'],
+                                '{{__COLOR__}}'         => $color_name,
+                                '{{__COLOR_CODE__}}'    => $color_code  );
+
+        $com_html = strtr($com_html, $com_replace);
 
         $ind_total = '';
 
         foreach ($com['indicators'] as $ind_id => $ind) {
             $ind_id_for_html = str_replace(".", "-", $ind['id']);
 
-            $ind_html = str_replace("{{__NAME__}}",         $ind['name'],       $indicator_content);
-            $ind_html = str_replace("{{__MEASURE__}}",      $ind['measure'],    $ind_html);
-            $ind_html = str_replace("{{__ID__}}",           $ind['id'],         $ind_html);
-            $ind_html = str_replace("{{__ID_FOR_HTML__}}",  $ind_id_for_html,   $ind_html);
-            $ind_html = str_replace("{{__IMPORTANCE__}}",   $ind['importance'], $ind_html);
-            $ind_html = str_replace("{{__NAT__}}",          $ind['nat'],        $ind_html);
+            $ind_replace = array(   '{{__NAME__}}'          => $ind['name'],
+                                    '{{__MEASURE__}}'       => $ind['measure'],
+                                    '{{__ID__}}'            => $ind['id'],
+                                    '{{__ID_FOR_HTML__}}'   => $ind_id_for_html,
+                                    '{{__IMPORTANCE__}}'    => $ind['importance'],
+                                    '{{__NAT__}}'           => $ind['nat'],
+                                    '{{__DIM_ID__}}'        => $dim_id,
+                                    '{{__COM_ID__}}'        => $com_id,
+                                    '{{__IND_ID__}}'        => $ind_id);
+
+            $ind_html = $indicator_content;
+            $ind_html = strtr($ind_html, $ind_replace);
 
             $ind_total .= $ind_html;
+
+            $js_indicators_array .= $ind_id . ': { q0u: null, sv: null, q0: null, q1: null, qr: null, tr: null },';
+
         }
 
         $com_html = str_replace("{{__INDICATORS_CONTENT__}}", $ind_total, $com_html);
@@ -84,13 +113,26 @@ foreach ($dimensions as $dim_id => $dim) {
         // Aggiungo all'html finale
         $html .= $com_html;
 
+        // Rimuovo l'ultima virgola
+        $js_indicators_array = rtrim($js_indicators_array,", ");
+        $js_indicators_array .= '},';
+
         // Aggiungo la chiamata per inizializzare il grafico
         $create_chart_call_function .= 'createChart("#chart_' . $com_id_for_html . '");';
     }
 
+    // Rimuovo l'ultima virgola
+    $js_indicators_array = rtrim($js_indicators_array,", ");
 
     $html .= "</div>";
+
+    // Chiudo l'array in javascript
+    $js_indicators_array .= '},';
 }
+
+// Rimuovo l'ultima virgola
+$js_indicators_array = rtrim($js_indicators_array,", ");
+$js_indicators_array .= '}';
 
 ?>
 
@@ -113,9 +155,129 @@ foreach ($dimensions as $dim_id => $dim) {
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <link rel="stylesheet" type="text/css" href="css/index.css">
 
-    <script type="application/javascript">
-        $(document).ready(function() {
+    <script src="js/indicators.js"charset="UTF-8"></script>
 
+    <script type="application/javascript">
+        var lista = <?php echo $js_indicators_array; ?>;
+        var indicators = new Indicators();
+        indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
+        indicators.caricaLista();
+
+        function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
+            if ( modalita == modalitaAPIIndicators.caricaLista ) {
+                lista = result;
+                aggiornaTabellaIndicatori();
+            }
+        }
+
+        var timerSave = null;
+        function avviaTimerSalvataggio() {
+            // Salva la lista
+            clearTimeout(timerSave);
+            timerSave = setTimeout(salvaListaIndicatori, 2000);
+        }
+
+        function salvaListaIndicatori() {
+            console.log("Salvo");
+            indicators.salvaLista( lista );
+        }
+
+        function aggiornaTabellaIndicatori() {
+            $( ".input.number input" ).each(function() {
+                var dim     = $(this).data("dim");
+                var com     = $(this).data("com");
+                var ind     = $(this).data("ind");
+                var name    = $(this).attr("name");
+                var value = lista[dim][com][ind][name];
+
+                if ( value !== null) {
+                    $(this).val( value );
+                } else {
+                    $(this).val( "" );
+                }
+            });
+        }
+
+        function calcoliSuIndicatore(dim, com, ind) {
+            // Calcolo q0 a partire da SV e qu0
+            var sv  = lista[dim][com][ind]['sv'];
+            var qu0 = lista[dim][com][ind]['q0u'];
+            var q0  = lista[dim][com][ind]['q0'];
+
+            var q0_id = '#' + dim + '' + com + '' + ind + 'q0';
+            if ( sv !== null && qu0 !== null ) {
+                var new_q0 = (qu0 / sv).toFixed(3);
+
+                if ( !isNaN(new_q0) && isFinite(new_q0) && new_q0 != q0 ) {
+                    $(q0_id).attr('placeholder', '');
+                    $(q0_id).val( new_q0 );
+                    lista[dim][com][ind]['q0'] = new_q0;
+                } else {
+                    $(q0_id).attr('placeholder', 'q0');
+                    $(q0_id).val("");
+                    lista[dim][com][ind]['q0'] = null;
+                }
+
+            } else {
+                $(q0_id).attr('placeholder', 'q0');
+                $(q0_id).val("");
+                lista[dim][com][ind]['q0'] = null;
+            }
+
+        }
+
+        function createChart(component) {
+            var ctx = $(component);
+            var color = $(component).data("color");
+
+            var scatterChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        lineTension: 0.5,
+                        borderColor: color,
+                        fill : false,
+                        pointRadius: 1,
+                        pointHitRadius: 1,
+                        pointHoverRadius: 1,
+                        data: [ {x: 0, y: 10},
+                            {x: 10, y: 20},
+                            {x: 20, y: 10},
+                            {x: 30, y: 40}]
+                    }]
+                },
+                options: {
+                    maintainAspectRatio : false,
+                    legend : {
+                        display : false
+                    },
+                    tooltips: {
+                        enabled : false
+                    },
+                    scales: {
+                        xAxes: [{
+                            type: 'linear',
+                            position: 'bottom',
+                            ticks: {
+                                min: 0
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                max: 100,
+                                min: 0,
+                                stepSize: 10
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            /**
+             * Rendo cliccabili gli elementi della sidebar
+             */
             $(".mainmenu .item").click(function () {
                 $(".maingrid").hide();
                 $(".mainmenu .item").removeClass('active');
@@ -124,57 +286,29 @@ foreach ($dimensions as $dim_id => $dim) {
                 $('html, body').scrollTop(0);
             });
 
+            // Clicco sul primo elemento della sidebar dopo aver caricato tutto
             $(".mainmenu .item").first().click();
 
-            function createChart(component) {
-                var ctx = $(component);
-                var color = $(component).data("color");
+            /**
+             * Per ogni elemento di input, ad ogni sua modifica salvo la lista
+             * degli indicatori
+             */
+            $(".input.number input").on('input', function () {
+                console.log("Si!");
+                var dim     = $(this).data("dim");
+                var com     = $(this).data("com");
+                var ind     = $(this).data("ind");
+                var name    = $(this).attr("name");
 
-                var scatterChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        datasets: [{
-                            lineTension: 0.5,
-                            borderColor: color,
-                            fill : false,
-                            pointRadius: 1,
-                            pointHitRadius: 1,
-                            pointHoverRadius: 1,
-                            data: [ {x: 0, y: 10},
-                                {x: 10, y: 20},
-                                {x: 20, y: 10},
-                                {x: 30, y: 40}]
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio : false,
-                        legend : {
-                            display : false
-                        },
-                        tooltips: {
-                            enabled : false
-                        },
-                        scales: {
-                            xAxes: [{
-                                type: 'linear',
-                                position: 'bottom',
-                                ticks: {
-                                    min: 0
-                                }
-                            }],
-                            yAxes: [{
-                                ticks: {
-                                    max: 100,
-                                    min: 0,
-                                    stepSize: 10
-                                }
-                            }]
-                        }
-                    }
-                });
-            }
+                lista[dim][com][ind][name] = $(this).val();
 
-            <?php
+                // Esegui calcoli dopo le modifiche
+                calcoliSuIndicatore(dim, com, ind);
+
+                avviaTimerSalvataggio();
+            });
+
+        <?php
                 echo $create_chart_call_function;
             ?>
 
