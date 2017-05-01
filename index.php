@@ -169,8 +169,8 @@ $js_indicators_array .= '}';
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="semantic/dist/semantic.min.js"></script>
 
-    <!--<link rel="stylesheet" href="mathscribe/jqmath-0.4.3.css">
-    <script src="mathscribe/jqmath-etc-0.4.6.min.js" charset="utf-8"></script>-->
+    <link type="text/css" rel="stylesheet" href="katex/katex.min.css">
+    <script type="text/javascript" src="katex/katex.min.js" charset="utf-8"></script>
 
     <script src="chartjs/dist/Chart.min.js" charset="UTF-8"></script>
 
@@ -256,6 +256,38 @@ $js_indicators_array .= '}';
             }
         }
 
+        function trapz(data, start, end) {
+            var a = null;
+            var b = null;
+
+            for (var i = 1; i < data.length; i++) {
+                if (data[i]['x'] >= start && a === null) {
+                    a = i;
+                }
+                if (data[i]['x'] >= end && b === null) {
+                    b = i;
+                    break;
+                }
+            }
+
+            var x0 = data[a-1]['x'];    var y0 = data[a-1]['y'];
+            var x1 = data[a]['x'];      var y1 = data[a]['y'];
+            var y_s = ((y0 - y1) / (x0 - x1)) * start + ((x0*y1 - y0*x1) / (x0 - x1));
+
+            var x0 = data[b-1]['x'];    var y0 = data[b-1]['y'];
+            var x1 = data[b]['x'];      var y1 = data[b]['y'];
+            var y_f = ((y0 - y1) / (x0 - x1)) * start + ((x0*y1 - y0*x1) / (x0 - x1));
+
+            var sum = (y_s + data[a]['y']) * (data[a]['x'] - start);
+
+            for (var i = a+1; i < b; i++) {
+                sum += ((data[i]['x'] - data[i-1]['x']) * (data[i]['y'] + data[i-1]['y']));
+            }
+            sum += (y_f + data[b-1]['y']) * (end - data[b-1]['x']);
+
+            return sum / 2;
+        }
+
         function linspance(a, b, n) {
             // Si definisce un massimo numero di punti che è 1000
             var step = (b - a) / n;
@@ -303,7 +335,7 @@ $js_indicators_array .= '}';
              * Il grafico lo faccio iniziare 10% di Tr prima di 0 e prosegue
              * il 10% di Tr oltre Tr.
              */
-            var space = linspance(-span, max_tr + span, 100 );
+            var space = linspance(-span, max_tr + span, Math.ceil( (max_tr + 2 * span) / 2) );
 
             var datasets = new Array();
 
@@ -312,7 +344,8 @@ $js_indicators_array .= '}';
 
                 var dataset = {
                     label: lista[dim][c]['name'],
-                    lineTension: 0.5,
+                    id : c,
+                    lineTension: 0.1,
                     borderColor: lista[dim][c]['color'],
                     fill: false,
                     pointRadius: 1,
@@ -332,11 +365,51 @@ $js_indicators_array .= '}';
                 }
 
                 dataset['data'] = data;
+                var integral = 100 - (trapz(data, 0, max_tr)/max_tr);
+                console.log(integral);
+                mostraValoreIntegrale(dim, max_tr, integral);
                 datasets.push(dataset);
 
             }
 
             if (datasets.length > 0) {
+
+                /**
+                 * Se ho più di un dataset che posso plottare, calcolo anche
+                 * la media fra i vari dataset e la plotto
+                 */
+                if (datasets.length > 1) {
+                    var dataset = {
+                        label: 'All components',
+                        lineTension: 0.5,
+                        borderColor: 'black',
+                        fill: false,
+                        pointRadius: 1,
+                        pointHitRadius: 1,
+                        pointHoverRadius: 1
+                    };
+
+
+                    var data = new Array();
+                    for (var t_idx = 0; t_idx < space.length; t_idx++) {
+                        var t = space[t_idx];
+
+                        var y_val = 0;
+                        var i_sum = 0;
+                        for (var i = 0; i < datasets.length; i++) {
+                            var c = parseInt(datasets[i]['id']);
+                            y_val = y_val + datasets[i]['data'][t_idx]['y'] * parseInt(lista[dim][c]['i']);
+                            i_sum += parseInt(lista[dim][c]['i']);
+                        }
+
+                        data.push({x: t, y: y_val / i_sum});
+                    }
+
+                    dataset['data'] = data;
+                    datasets.push(dataset);
+                }
+
+
                 createChart(ind_chart_list[dim]['graph_id'], datasets, -span, max_tr + span);
             }
 
@@ -368,6 +441,24 @@ $js_indicators_array .= '}';
             }
         }
 
+        function mostraValoreIntegrale(dim, max_tr, ris) {
+            var msgs_id_class = ".dim-" + dim + " .plot .messaggi";
+            var id = 'katex';
+
+            var int = "<div class='integral''></div>";
+            var math_text = "\\int_{0}^{{{__MAX_TR__}}} \\frac{100 - Q(x)}{{{__MAX_TR__}}}dx = {{__RIS__}}\\%";
+
+            math_text = math_text.replace("{{__MAX_TR__}}", max_tr);
+            math_text = math_text.replace("{{__MAX_TR__}}", max_tr);
+            math_text = math_text.replace("{{__RIS__}}",    ris.toFixed(2));
+
+            console.log(math_text);
+
+            //$(msgs_id_class).append(int);
+
+            $(msgs_id_class).append( "<div class='integral'>" + katex.renderToString(math_text, {displayMode: true}) + "</div>" );
+        }
+
         function calcoliSuIndicatore(dim, com, ind) {
             // Calcolo q0 a partire da SV e qu0
             var sv  = lista[dim][com]['ind'][ind]['sv'];
@@ -377,7 +468,7 @@ $js_indicators_array .= '}';
             var q0_id = '#' + dim + '' + com + '' + ind + 'q0';
 
             if ( sv !== null && qu0 !== null ) {
-                var new_q0 = (qu0 / sv).toFixed(3);
+                var new_q0 = Math.min(1, (qu0 / sv)).toFixed(3);
 
                 if ( !isNaN(new_q0) && isFinite(new_q0) ) {
 
