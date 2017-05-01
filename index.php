@@ -21,9 +21,19 @@ $handle = fopen($filename, "r");
 $dimension_content = fread($handle, filesize($filename));
 fclose($handle);
 
-$filename = "./template/indicator_content.html";
+$filename = "./template/component_content.html";
 $handle = fopen($filename, "r");
-$indicator_content = fread($handle, filesize($filename));
+$component_content = fread($handle, filesize($filename));
+fclose($handle);
+
+$filename = "./template/dyn_indicator_content.html";
+$handle = fopen($filename, "r");
+$dyn_indicator_content = fread($handle, filesize($filename));
+fclose($handle);
+
+$filename = "./template/static_indicator_content.html";
+$handle = fopen($filename, "r");
+$static_indicator_content = fread($handle, filesize($filename));
 fclose($handle);
 
 /**
@@ -51,18 +61,19 @@ $color_array_names = array_keys($color_array);
 
 $color_array_size = count($color_array);
 
-$create_chart_call_function = '';
-
 foreach ($dimensions as $dim_id => $dim) {
 
-    $html .= '<div id="dim_' . $dim['id'] . '">';
+    $dim_html = $dimension_content;
 
     $js_indicators_array .= $dim_id . ': { ';
 
     $color_array_index = 0;
+
+    $com_html = '';
+
     foreach ($dim['components'] as $com_id => $com) {
 
-        $js_indicators_array .= $com_id . ': { ';
+        $js_indicators_array .= $com_id . ': { ind : { ';
 
         // Preparo l'ID stile HTML, con - al posto di .
         $com_id_for_html = str_replace(".", "-", $com['id']);
@@ -72,7 +83,7 @@ foreach ($dimensions as $dim_id => $dim) {
         $color_code = $color_array[ $color_name ];
         $color_array_index++;
 
-        $com_html = $dimension_content;
+        $com_html .= $component_content;
 
         $com_replace = array(   '{{__NAME__}}'          => $com['name'],
                                 '{{__ID__}}'            => $com['id'],
@@ -85,6 +96,7 @@ foreach ($dimensions as $dim_id => $dim) {
         $com_html = strtr($com_html, $com_replace);
 
         $ind_total = '';
+        $total_i   = 0;
 
         foreach ($com['indicators'] as $ind_id => $ind) {
             $ind_id_for_html = str_replace(".", "-", $ind['id']);
@@ -99,32 +111,42 @@ foreach ($dimensions as $dim_id => $dim) {
                                     '{{__COM_ID__}}'        => $com_id,
                                     '{{__IND_ID__}}'        => $ind_id);
 
-            $ind_html = $indicator_content;
+            $ind_html = $dyn_indicator_content;
+
+            if ( strtoupper($ind['nat']) == 'S' ) {
+                $ind_html = $static_indicator_content;
+            }
+
             $ind_html = strtr($ind_html, $ind_replace);
 
             $ind_total .= $ind_html;
 
-            $js_indicators_array .= $ind_id . ': { q0u: null, sv: null, q0: null, q1: null, qr: null, tr: null },';
+            $nat     = (strtoupper($ind['nat']) == 'D') ? 'modalitaIndicator.dinamica' : 'modalitaIndicator.statica';
+            $def_val = (strtoupper($ind['nat']) == 'D') ? 'null' : '1';
 
+            $js_indicators_array .= $ind_id . ': { q0u: null, sv: null, q0: null, q1: ' . $def_val . ', qr: ' . $def_val . ', 
+                                    tr: ' . $def_val . ', i : ' . intval($ind['importance']) . ', nat : ' . $nat . ' },';
+
+            $total_i += intval($ind['importance']);
         }
 
         $com_html = str_replace("{{__INDICATORS_CONTENT__}}", $ind_total, $com_html);
 
-        // Aggiungo all'html finale
-        $html .= $com_html;
-
         // Rimuovo l'ultima virgola
         $js_indicators_array = rtrim($js_indicators_array,", ");
-        $js_indicators_array .= '},';
-
-        // Aggiungo la chiamata per inizializzare il grafico
-        $create_chart_call_function .= 'createChart("#chart_' . $com_id_for_html . '");';
+        $js_indicators_array .= '}, i : ' . intval($com['importance']) . ', total_i : ' . $total_i . ', 
+                                    name : "' . $com['name'] . '", color : "' . $color_code . '" },';
     }
 
     // Rimuovo l'ultima virgola
     $js_indicators_array = rtrim($js_indicators_array,", ");
 
-    $html .= "</div>";
+    $dim_replace = array(   '{{__DIM_ID__}}'                => $dim_id,
+                            '{{__COMPONENTS_CONTENT__}}'    => $com_html );
+
+    $dim_html = strtr($dim_html, $dim_replace);
+
+    $html .= $dim_html;
 
     // Chiudo l'array in javascript
     $js_indicators_array .= '},';
@@ -155,10 +177,13 @@ $js_indicators_array .= '}';
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <link rel="stylesheet" type="text/css" href="css/index.css">
 
-    <script src="js/indicators.js"charset="UTF-8"></script>
+    <script type="application/javascript" src="js/Indicators.js" charset="UTF-8"></script>
+    <script type="application/javascript" src="js/Indicator.js" charset="UTF-8"></script>
 
     <script type="application/javascript">
         var lista = <?php echo $js_indicators_array; ?>;
+        var ind_chart_list = null;
+        var dimensione_selezionata = -1;
         var indicators = new Indicators();
         indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
         indicators.caricaLista();
@@ -171,15 +196,24 @@ $js_indicators_array .= '}';
         }
 
         var timerSave = null;
-        function avviaTimerSalvataggio() {
+        function avviaTimerSalvataggioEGraphRedraw() {
             // Salva la lista
             clearTimeout(timerSave);
-            timerSave = setTimeout(salvaListaIndicatori, 2000);
+            timerSave = setTimeout(azioniTimerSalvataggioGraphRedraw, 2000);
+        }
+
+        function azioniTimerSalvataggioGraphRedraw() {
+            salvaListaIndicatori();
+            aggiornaGrafici();
         }
 
         function salvaListaIndicatori() {
             console.log("Salvo");
             indicators.salvaLista( lista );
+        }
+
+        function aggiornaGrafici() {
+            aggiornaGraficiPerDimensione(dimensione_selezionata);
         }
 
         function aggiornaTabellaIndicatori() {
@@ -188,7 +222,9 @@ $js_indicators_array .= '}';
                 var com     = $(this).data("com");
                 var ind     = $(this).data("ind");
                 var name    = $(this).attr("name");
-                var value = lista[dim][com][ind][name];
+
+                var value   = lista[dim][com]['ind'][ind][name];
+
 
                 if ( value !== null) {
                     $(this).val( value );
@@ -196,60 +232,213 @@ $js_indicators_array .= '}';
                     $(this).val( "" );
                 }
             });
+
+            aggiornaListaGraficiIndicatori();
+            aggiornaGrafici();
+        }
+        
+        function aggiornaListaGraficiIndicatori() {
+            ind_chart_list = {};
+            for (var d = 1; d <= Object.keys(lista).length; d++) {
+                ind_chart_list[d] = {};
+                ind_chart_list[d]['graph_id'] = '#chart_' + d;
+                ind_chart_list[d]['com'] = {};
+
+                for (var c = 1; c <= Object.keys(lista[d]).length; c++) {
+                    ind_chart_list[d]['com'][c] = {};
+                    ind_chart_list[d]['com'][c]['graph_id'] = '#chart_' + d + '_' + c;
+                    ind_chart_list[d]['com'][c]['ind'] = {};
+
+                    for (var i = 1; i <= Object.keys(lista[d][c]['ind']).length; i++) {
+                        ind_chart_list[d]['com'][c]['ind'][i] = new Indicator(d, c, i, lista[d][c]['ind'][i]['nat']);
+                    }
+                }
+            }
+        }
+
+        function linspance(a, b, n) {
+            // Si definisce un massimo numero di punti che è 1000
+            var step = (b - a) / n;
+            var space = new Array();
+            if ( step == 0 || a == b || a > b ) {
+                return space
+            }
+
+            for (var s = a; s <= b && space.length <= 1000; s+=step) {
+                space.push(s);
+            }
+
+            return space;
+        }
+
+        function aggiornaGraficiPerDimensione(dim) {
+            var max_tr = 0;
+            var comp_validi = new Array();
+            var comp_errore = new Array();
+
+            for (var c = 1; c <= Object.keys(lista[dim]).length; c++) {
+                if ( sonoIndicatoriValidiPerComponente(dim, c) ) {
+                    for (var i = 1; i <= Object.keys(lista[dim][c]['ind']).length; i++) {
+                        if (parseFloat(lista[dim][c]['ind'][i]['tr']) > max_tr) {
+                            max_tr = parseFloat(lista[dim][c]['ind'][i]['tr']);
+                        }
+                    }
+                    comp_validi.push(c);
+                } else {
+                    comp_errore.push(c);
+                }
+
+            }
+
+            mostraMessaggiDiErrorePerIlGrafico(dim, comp_errore, comp_validi);
+
+            if (comp_validi.length == 0) {
+                $(".dim-" + dim + " .plot .grafico").hide();
+                return false;
+            }
+            $(".dim-" + dim + " .plot .grafico").show();
+
+            var span = Math.floor(max_tr * 0.1);
+            /**
+             * Il grafico lo faccio iniziare 10% di Tr prima di 0 e prosegue
+             * il 10% di Tr oltre Tr.
+             */
+            var space = linspance(-span, max_tr + span, 100 );
+
+            var datasets = new Array();
+
+            for (var c_idx = 0; c_idx < comp_validi.length; c_idx++) {
+                var c = comp_validi[c_idx];
+
+                var dataset = {
+                    label: lista[dim][c]['name'],
+                    lineTension: 0.5,
+                    borderColor: lista[dim][c]['color'],
+                    fill: false,
+                    pointRadius: 1,
+                    pointHitRadius: 1,
+                    pointHoverRadius: 1
+                };
+
+                var data = new Array();
+                for (var t_idx = 0; t_idx < space.length; t_idx++) {
+                    var t = space[t_idx];
+                    var y_val = 0;
+                    for (var i = 1; i <= Object.keys(lista[dim][c]['ind']).length; i++) {
+                        y_val = y_val + ind_chart_list[dim]['com'][c]['ind'][i].getPoint(t, lista) * ind_chart_list[dim]['com'][c]['ind'][i].getWeight(lista);
+                    }
+
+                    data.push({x: t, y: y_val * 100});
+                }
+
+                dataset['data'] = data;
+                datasets.push(dataset);
+
+            }
+
+            if (datasets.length > 0) {
+                createChart(ind_chart_list[dim]['graph_id'], datasets, -span, max_tr + span);
+            }
+
+        }
+
+        function mostraMessaggiDiErrorePerIlGrafico(dim, comp_errore, comp_validi) {
+            var msgs_id_class = ".dim-" + dim + " .plot .messaggi";
+            $(msgs_id_class).html("");
+
+            if (comp_errore.length == 0) {
+                var good_msg = "<div class='ui green message'>All components are correctly plotted</div>";
+                $(msgs_id_class).append(good_msg);
+            }
+
+            var err_msg_text = "<div class='ui red message'>{{__TESTO__}}</div>";
+
+            if (comp_validi.length == 0) {
+                err_msg_text = "<div class='ui red message full'>{{__TESTO__}}</div>";
+            }
+
+            for (var i = 0; i < comp_errore.length; i++) {
+                var c = comp_errore[i];
+
+                var name = lista[dim][c]['name'];
+
+                var err_msg = err_msg_text.replace("{{__TESTO__}}", "Some indicators in component " + name + " are not correct. " +
+                    name + " was not plotted");
+                $(msgs_id_class).append(err_msg);
+            }
         }
 
         function calcoliSuIndicatore(dim, com, ind) {
             // Calcolo q0 a partire da SV e qu0
-            var sv  = lista[dim][com][ind]['sv'];
-            var qu0 = lista[dim][com][ind]['q0u'];
-            var q0  = lista[dim][com][ind]['q0'];
+            var sv  = lista[dim][com]['ind'][ind]['sv'];
+            var qu0 = lista[dim][com]['ind'][ind]['q0u'];
+            var q0  = lista[dim][com]['ind'][ind]['q0'];
 
             var q0_id = '#' + dim + '' + com + '' + ind + 'q0';
+
             if ( sv !== null && qu0 !== null ) {
                 var new_q0 = (qu0 / sv).toFixed(3);
 
-                if ( !isNaN(new_q0) && isFinite(new_q0) && new_q0 != q0 ) {
+                if ( !isNaN(new_q0) && isFinite(new_q0) ) {
+
                     $(q0_id).attr('placeholder', '');
                     $(q0_id).val( new_q0 );
-                    lista[dim][com][ind]['q0'] = new_q0;
+
+                    lista[dim][com]['ind'][ind]['q0'] = new_q0;
+
                 } else {
                     $(q0_id).attr('placeholder', 'q0');
                     $(q0_id).val("");
-                    lista[dim][com][ind]['q0'] = null;
+                    lista[dim][com]['ind'][ind]['q0'] = null;
                 }
 
             } else {
                 $(q0_id).attr('placeholder', 'q0');
                 $(q0_id).val("");
-                lista[dim][com][ind]['q0'] = null;
+                lista[dim][com]['ind'][ind]['q0'] = null;
             }
 
         }
+        
+        function sonoIndicatoriValidiPerComponente(dim, com) {
+            for (var i = 1; i <= Object.keys(lista[dim][com]['ind']).length; i++) {
+                if (lista[dim][com]['ind'][i]['sv']   === null ||
+                    lista[dim][com]['ind'][i]['q0u']  === null ||
+                    lista[dim][com]['ind'][i]['q0']   === null ||
+                    lista[dim][com]['ind'][i]['q1']   === null ||
+                    lista[dim][com]['ind'][i]['qr']   === null ||
+                    lista[dim][com]['ind'][i]['tr']   === null ||
+                    lista[dim][com]['ind'][i]['sv'].length   == 0 ||
+                    lista[dim][com]['ind'][i]['q0u'].length  == 0 ||
+                    lista[dim][com]['ind'][i]['q0'].length   == 0 ||
+                    lista[dim][com]['ind'][i]['q1'].length   == 0 ||
+                    lista[dim][com]['ind'][i]['qr'].length   == 0 ||
+                    lista[dim][com]['ind'][i]['tr'].length   == 0) {
+                    return false;
+                }
 
-        function createChart(component) {
-            var ctx = $(component);
-            var color = $(component).data("color");
+            }
+
+            return true;
+        }
+
+        function createChart(component, datasets, start, end) {
+            var ctx     = $(component);
 
             var scatterChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: [{
-                        lineTension: 0.5,
-                        borderColor: color,
-                        fill : false,
-                        pointRadius: 1,
-                        pointHitRadius: 1,
-                        pointHoverRadius: 1,
-                        data: [ {x: 0, y: 10},
-                            {x: 10, y: 20},
-                            {x: 20, y: 10},
-                            {x: 30, y: 40}]
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     maintainAspectRatio : false,
                     legend : {
-                        display : false
+                        display : true,
+                        position : 'bottom',
+                        labels : {
+                            boxWidth : 1,
+                            padding : 20
+                        }
                     },
                     tooltips: {
                         enabled : false
@@ -258,9 +447,8 @@ $js_indicators_array .= '}';
                         xAxes: [{
                             type: 'linear',
                             position: 'bottom',
-                            ticks: {
-                                min: 0
-                            }
+                            min: Math.floor(parseInt(start)),
+                            max: Math.ceil(parseInt(end))
                         }],
                         yAxes: [{
                             ticks: {
@@ -284,6 +472,9 @@ $js_indicators_array .= '}';
                 $(".dim-" + $(this).data('dim_id')).show();
                 $(this).addClass('active');
                 $('html, body').scrollTop(0);
+
+                dimensione_selezionata = parseInt(  $(this).data('dim_id') );
+                aggiornaGrafici();
             });
 
             // Clicco sul primo elemento della sidebar dopo aver caricato tutto
@@ -294,24 +485,20 @@ $js_indicators_array .= '}';
              * degli indicatori
              */
             $(".input.number input").on('input', function () {
-                console.log("Si!");
                 var dim     = $(this).data("dim");
                 var com     = $(this).data("com");
                 var ind     = $(this).data("ind");
                 var name    = $(this).attr("name");
 
-                lista[dim][com][ind][name] = $(this).val();
+                lista[dim][com]['ind'][ind][name] = $(this).val();
 
                 // Esegui calcoli dopo le modifiche
                 calcoliSuIndicatore(dim, com, ind);
 
-                avviaTimerSalvataggio();
+                avviaTimerSalvataggioEGraphRedraw();
             });
 
-        <?php
-                echo $create_chart_call_function;
-            ?>
-
+            aggiornaTabellaIndicatori();
 
         });
 

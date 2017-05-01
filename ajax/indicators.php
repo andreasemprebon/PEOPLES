@@ -59,7 +59,8 @@ if ($method == 'GET') {
 } else if ($method == 'POST'){
 
     if ( isset($reqVars['lista']) ) {
-        file_put_contents($filename, json_encode($reqVars['lista']));
+        $lista = json_decode($reqVars['lista'], true);
+        file_put_contents($filename, json_encode($lista));
         $arrayReturn['status'] = 0;
     } else {
         $arrayReturn['desc'] = 'Errore durante il salvataggio del file';

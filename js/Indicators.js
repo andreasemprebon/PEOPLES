@@ -70,7 +70,7 @@ Indicators.prototype = {
         $.ajax({
             type: "POST",
             url: "./ajax/indicators.php",
-            data: { lista: list },
+            data: { lista : JSON.stringify(list)},
             cache: false,
             success: function(html) {
                 console.log(html);

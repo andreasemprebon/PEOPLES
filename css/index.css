@@ -61,7 +61,20 @@ Main Menu
     margin-bottom: 10px;
 }
 
-.maincontent .grafico {
-    width: 50%;
-    height: 250px;
+.maincontent .plot {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.maincontent .plot .grafico {
+    width: 70%;
+    height: 450px;
+}
+
+.maincontent .plot .message {
+    width: 100%;
+    height: 100%
 }
