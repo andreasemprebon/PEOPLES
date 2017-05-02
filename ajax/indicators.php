@@ -48,7 +48,7 @@ if ( !isset($reqVars) ) {
     die( json_encode($arrayReturn) );
 }
 
-$filename = 'indicatori_salvati.json';
+$filename = '../scenario/' . $reqVars['filename'];
 
 if ($method == 'GET') {
 

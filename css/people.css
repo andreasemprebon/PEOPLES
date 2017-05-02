@@ -1,0 +1,94 @@
+/**
+Main Menu
+ */
+.mainmenu a {
+    line-height: 20px;
+}
+
+.ui.sidebar.menu.mainmenu {
+    width: 200px;
+}
+
+.ui.maingrid {
+    margin: 0;
+    margin-left: 200px;
+}
+
+.ui.maingrid .maincontent {
+    margin-left: 2%;
+    width: 96%;
+}
+
+.ui.table.indicator {
+    padding: 0;
+    width: 100%;
+
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.ui.table.indicator thead {
+    width: 100%;
+}
+
+.ui.table.indicator th sub {
+    font-weight: 800;
+}
+
+.ui.table.indicator .ui.input.number {
+    min-width: 50px;
+}
+
+.ui.table.indicator .ui.input.number input {
+    text-align: center;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 2px;
+    padding-right: 2px;
+    min-width: 50px;
+}
+
+.ui.table.indicator .checkbox {
+    width: 15px;
+}
+
+.ui.table.indicator .center{
+    text-align: center;
+}
+
+.ui.header.component {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.maincontent .plot {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.maincontent .plot .grafico {
+    width: 70%;
+    height: 450px;
+}
+
+.maincontent .plot .message {
+    width: 100%;
+    height: 100%
+}
+
+.maincontent .plot .integral {
+    font-size: 12px;
+    padding-top: 15px;
+    paddin-bottom: 15px;
+}
+
+.maincontent .plot .integral .nome {
+    font-size: 15px;
+}
+
+.maincontent .plot .integral .katex-display {
+    text-align: left;
+}

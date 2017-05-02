@@ -25,7 +25,7 @@ function Indicators() {
 Indicators.prototype = {
     constructor: Indicators,
 
-    caricaLista: 	function() {
+    caricaLista: 	function(filename) {
         var that = this;
         this.modalita = modalitaAPIIndicators.caricaLista;
         that.lanciaCallbackInizio();
@@ -33,6 +33,7 @@ Indicators.prototype = {
         $.ajax({
             type: "GET",
             url: "./ajax/indicators.php",
+            data: {filename: filename},
             cache: false,
             success: function(html) {
                 var json = false;
@@ -62,7 +63,7 @@ Indicators.prototype = {
         });
     },
 
-    salvaLista: function( list ) {
+    salvaLista: function( filename, list ) {
         var that = this;
         this.modalita = modalitaAPIIndicators.salvaLista;
         that.lanciaCallbackInizio();
@@ -70,7 +71,7 @@ Indicators.prototype = {
         $.ajax({
             type: "POST",
             url: "./ajax/indicators.php",
-            data: { lista : JSON.stringify(list)},
+            data: { filename : filename, lista : JSON.stringify(list)},
             cache: false,
             success: function(html) {
                 console.log(html);
@@ -96,33 +97,33 @@ Indicators.prototype = {
         });
     },
 
-    eliminaLista: function( id ) {
+    eliminaLista: function( filename ) {
         var that = this;
         that.lanciaCallbackInizio();
 
         $.ajax({
             type: "DELETE",
             url: "./ajax/indicators.php",
-            data: id,
+            data: {filename: filename},
             cache: false,
-            success: function(html) {
+            success: function (html) {
                 var json = false;
                 try {
                     json = $.parseJSON(html);
                 }
-                catch(err) {
+                catch (err) {
                     that.lanciaCallbackErrore("Il formato dei dati restituito dall'elaborazione sembra essere non valido. <br/>" + err.message + "<br />" + html);
                     return;
                 }
 
-                if ( json.status !== 0 ) {
+                if (json.status !== 0) {
                     that.lanciaCallbackErrore(json.desc);
                     return;
                 }
 
                 that.lanciaCallbackSuccesso(json.result);
-            } ,
-            error: function(html) {
+            },
+            error: function (html) {
                 that.lanciaCallbackErrore("Impossibile raggiungere la pagina di gestione degli indicatori.");
             }
         });
