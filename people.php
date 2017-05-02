@@ -192,7 +192,9 @@ $js_indicators_array .= '}';
 
         function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
             if ( modalita == modalitaAPIIndicators.caricaLista ) {
-                lista = result;
+                if (result !== null) {
+                    lista = result;
+                }
                 aggiornaTabellaIndicatori();
             }
         }
