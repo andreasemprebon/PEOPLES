@@ -2,8 +2,34 @@
     <td>{{__ID__}}</td>
     <td>{{__NAME__}}</td>
     <td>{{__MEASURE__}}</td>
-    <td>{{__IMPORTANCE__}}</td>
-    <td>{{__NAT__}}</td>
+    <td>
+        <div class="show-on-indifference-of-importance" style="display: none;">-</div>
+        <div class="field">
+            <div class="ui selection dropdown input number">
+                <input type="hidden" name="i" id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}i"
+                       data-dim="{{__DIM_ID__}}" data-com="{{__COM_ID__}}" data-ind="{{__IND_ID__}}" value="{{__IMPORTANCE__}}">
+                <div class="default text">{{__IMPORTANCE__}}</div>
+                <div class="menu">
+                    <div class="item" data-value="1">1</div>
+                    <div class="item" data-value="2">2</div>
+                    <div class="item" data-value="3">3</div>
+                </div>
+            </div>
+        </div>
+    </td>
+    <td>
+       <div class="field">
+            <div class="ui selection dropdown input number">
+                <input type="hidden" name="nat" id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}nat"
+                       data-dim="{{__DIM_ID__}}" data-com="{{__COM_ID__}}" data-ind="{{__IND_ID__}}" value="{{__NAT__}}">
+                <div class="default text">{{__NAT__}}</div>
+                <div class="menu">
+                    <div class="item" data-value="1">D</div>
+                    <div class="item" data-value="2">S</div>
+                </div>
+            </div>
+       </div>
+    </td>
     <td>
         <div class="ui fluid input number">
             <input type="text" placeholder="q0u" autocomplete="off" id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}q0u" name="q0u"
@@ -23,18 +49,21 @@
         </div>
     </td>
     <td>
+        <div class="show-on-static" style="display: none;">-</div>
         <div class="ui fluid input number">
             <input type="text" placeholder="q1" autocomplete="off"  id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}q1" name="q1"
                    data-dim="{{__DIM_ID__}}" data-com="{{__COM_ID__}}" data-ind="{{__IND_ID__}}">
         </div>
     </td>
     <td>
+        <div class="show-on-static" style="display: none;">-</div>
         <div class="ui fluid input number">
             <input type="text" placeholder="qr" autocomplete="off"  id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}qr" name="qr"
                    data-dim="{{__DIM_ID__}}" data-com="{{__COM_ID__}}" data-ind="{{__IND_ID__}}">
         </div>
     </td>
     <td>
+        <div class="show-on-static" style="display: none;">-</div>
         <div class="ui fluid input number">
             <input type="text" placeholder="Tr" autocomplete="off"  id="{{__DIM_ID__}}{{__COM_ID__}}{{__IND_ID__}}tr" name="tr"
                    data-dim="{{__DIM_ID__}}" data-com="{{__COM_ID__}}" data-ind="{{__IND_ID__}}">

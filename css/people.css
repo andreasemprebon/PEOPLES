@@ -1,8 +1,26 @@
 /**
 Main Menu
  */
+
 .mainmenu a {
     line-height: 20px;
+}
+
+.ui.vertical.menu.mainmenu div.item.nome {
+    display: flex;
+    cursor: pointer;
+}
+
+.ui.vertical.menu.mainmenu div.item.nome > i.icon {
+    float: none;
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 0px;
+    margin-right: 1.14285714em;
+}
+
+.mainmenu div.item.nome {
+    font-size: 18px;
 }
 
 .ui.sidebar.menu.mainmenu {
@@ -39,6 +57,7 @@ Main Menu
     min-width: 50px;
 }
 
+.ui.table.indicator .ui.selection.dropdown,
 .ui.table.indicator .ui.input.number input {
     text-align: center;
     padding-top: 5px;
@@ -48,11 +67,27 @@ Main Menu
     min-width: 50px;
 }
 
+.ui.table.indicator .ui.selection.dropdown {
+    min-width: 0px;
+    min-height: 0px;
+    width: 30px;
+}
+
+.ui.table.indicator .ui.selection.dropdown .menu .item {
+    margin-left: -7px;
+}
+
 .ui.table.indicator .checkbox {
     width: 15px;
 }
 
 .ui.table.indicator .center{
+    text-align: center;
+}
+
+.ui.table.indicator .show-on-static,
+.ui.table.indicator .show-on-indifference-of-importance {
+    width: 100%;
     text-align: center;
 }
 
@@ -76,7 +111,6 @@ Main Menu
 
 .maincontent .plot .message {
     width: 100%;
-    height: 100%
 }
 
 .maincontent .plot .integral {
@@ -91,4 +125,21 @@ Main Menu
 
 .maincontent .plot .integral .katex-display {
     text-align: left;
+}
+
+.save-modal {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    padding: 5px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border: 1px solid #d4d4d5;
+    background: #fff;
+    line-height: 20px;
+    font-size: 15px;
+    color: rgba(0, 0, 0, .87);
+    border-radius: .28571429rem;
+    box-shadow: 0 2px 4px 0 rgba(34, 36, 38, .12), 0 2px 10px 0 rgba(34, 36, 38, .15);
 }

@@ -26,17 +26,30 @@ $handle = fopen($filename, "r");
 $component_content = fread($handle, filesize($filename));
 fclose($handle);
 
-$filename = "./template/dyn_indicator_content.html";
+$filename = "./template/indicator_content.html";
 $handle = fopen($filename, "r");
-$dyn_indicator_content = fread($handle, filesize($filename));
+$indicator_content = fread($handle, filesize($filename));
 fclose($handle);
 
-$filename = "./template/static_indicator_content.html";
-$handle = fopen($filename, "r");
-$static_indicator_content = fread($handle, filesize($filename));
-fclose($handle);
 
-$filename = $_POST['filename'];
+$filename   = $_POST['filename'];
+$name       = $_POST['name'];
+$action     = intval( $_POST['action'] );
+
+// Se sto creando un nuovo file, gli assegno un nome casuale
+if ($action == 2) {
+    function generateRandomString($length = 10) {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[rand(0, $charactersLength - 1)];
+        }
+        return $randomString;
+    }
+
+    $filename = generateRandomString(15) . "_" . time() . ".json";
+}
 
 /**
  * In questa varibale è salvato tutto l'HTML del sistema,
@@ -113,23 +126,20 @@ foreach ($dimensions as $dim_id => $dim) {
                                     '{{__COM_ID__}}'        => $com_id,
                                     '{{__IND_ID__}}'        => $ind_id);
 
-            $ind_html = $dyn_indicator_content;
-
-            if ( strtoupper($ind['nat']) == 'S' ) {
-                $ind_html = $static_indicator_content;
-            }
+            $ind_html = $indicator_content;
 
             $ind_html = strtr($ind_html, $ind_replace);
 
             $ind_total .= $ind_html;
 
-            $nat     = (strtoupper($ind['nat']) == 'D') ? 'modalitaIndicator.dinamica' : 'modalitaIndicator.statica';
-            $def_val = (strtoupper($ind['nat']) == 'D') ? 'null' : '1';
+            $nat        = (strtoupper($ind['nat']) == 'D') ? 'modalitaIndicator.dinamica' : 'modalitaIndicator.statica';
+            $def_val    = 'null';
+            $importance = ($ind['importance'] == '-') ? 0 : intval($ind['importance']);
 
             $js_indicators_array .= $ind_id . ': { q0u: null, sv: null, q0: null, q1: ' . $def_val . ', qr: ' . $def_val . ', 
-                                    tr: ' . $def_val . ', i : ' . intval($ind['importance']) . ', nat : ' . $nat . ' },';
+                                    tr: ' . $def_val . ', i : ' . $importance . ', nat : ' . $nat . ' },';
 
-            $total_i += intval($ind['importance']);
+            $total_i += $importance;
         }
 
         $com_html = str_replace("{{__INDICATORS_CONTENT__}}", $ind_total, $com_html);
@@ -186,41 +196,57 @@ $js_indicators_array .= '}';
         var lista = <?php echo $js_indicators_array; ?>;
         var ind_chart_list = null;
         var dimensione_selezionata = -1;
+        var name = '<?php echo $name; ?>';
+
         var indicators = new Indicators();
         indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
-        indicators.caricaLista( '<?php echo $filename; ?>' );
+        indicators.caricaLista(name, '<?php echo $filename; ?>' );
 
         function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
             if ( modalita == modalitaAPIIndicators.caricaLista ) {
                 if (result !== null) {
-                    lista = result;
+                    name                    = result.name;
+                    lista                   = result.lista;
+                    $("#sel-dim" + result.dim_selected).click();
                 }
-                aggiornaTabellaIndicatori();
+                aggiornaTabellaIndicatori(true);
+            } else if ( modalita == modalitaAPIIndicators.salvaLista ) {
+                $(".save-modal").html("Saved");
+                setTimeout(function() {
+                    $(".save-modal").fadeOut(500);
+                }, 1000);
             }
         }
 
-        var timerSave = null;
+        var timerSave   = null;
+        var timerRedraw = null;
         function avviaTimerSalvataggioEGraphRedraw() {
-            // Salva la lista
-            clearTimeout(timerSave);
-            timerSave = setTimeout(azioniTimerSalvataggioGraphRedraw, 2000);
+            avviaTimerSalvataggio();
+            avviaTimerRedraw();
         }
 
-        function azioniTimerSalvataggioGraphRedraw() {
-            salvaListaIndicatori();
-            aggiornaGrafici();
+        function avviaTimerSalvataggio() {
+            clearTimeout(timerSave);
+            timerSave = setTimeout(salvaListaIndicatori, 2000);
+        }
+
+        function avviaTimerRedraw() {
+            clearTimeout(timerRedraw);
+            timerRedraw = setTimeout(aggiornaGrafici, 2000);
         }
 
         function salvaListaIndicatori() {
-            console.log("Salvo");
-            indicators.salvaLista( '<?php echo $filename; ?>', lista );
+            $(".save-modal").html("Saving...");
+            $(".save-modal").fadeIn(500);
+            indicators.salvaLista(name, '<?php echo $filename; ?>', lista, dimensione_selezionata );
         }
 
         function aggiornaGrafici() {
             aggiornaGraficiPerDimensione(dimensione_selezionata);
         }
 
-        function aggiornaTabellaIndicatori() {
+        function aggiornaTabellaIndicatori(aggiornamentoDaLoading = false) {
+            // Aggiorno i valori di ogni input
             $( ".input.number input" ).each(function() {
                 var dim     = $(this).data("dim");
                 var com     = $(this).data("com");
@@ -229,16 +255,54 @@ $js_indicators_array .= '}';
 
                 var value   = lista[dim][com]['ind'][ind][name];
 
-
                 if ( value !== null) {
                     $(this).val( value );
+                    $(this).attr("placeholder", "");
                 } else {
                     $(this).val( "" );
+                    $(this).attr("placeholder", name);
+                }
+
+                if ( name == 'i' && value == 0) {
+                    $(this).parent().parent().hide();
+                    $(this).parent().parent().parent().find('.show-on-indifference-of-importance').show();
+                }
+
+                if (aggiornamentoDaLoading) {
+                    if (name == 'nat' || name == 'i') {
+                        var val_da_mostrare = value;
+                        if (name == 'nat') {
+                            val_da_mostrare = (value == modalitaIndicator.statica) ? 'S' : 'D';
+                        }
+                        $(this).parent().find('.text').html(val_da_mostrare);
+
+                        $(this).parent().find('.menu .item').each(function () {
+                            if ($(this).data('value') == value) {
+                                $(this).addClass('active selected');
+                            } else {
+                                $(this).removeClass('active selected');
+                            }
+                        });
+                    }
+
+                }
+
+                if (name == 'q1' || name == 'qr' || name == 'tr') {
+                    // Imposto i campi visibili per i campi statici e dinamici
+                    var nat = lista[dim][com]['ind'][ind]['nat'];
+
+                    if (nat == modalitaIndicator.statica) {
+                        $(this).attr('type', 'hidden');
+                        $(this).parent().parent().find('.show-on-static').show();
+                    } else {
+                        $(this).attr('type', 'text');
+                        $(this).parent().parent().find('.show-on-static').hide();
+                    }
                 }
             });
 
             aggiornaListaGraficiIndicatori();
-            aggiornaGrafici();
+            avviaTimerRedraw();
         }
         
         function aggiornaListaGraficiIndicatori() {
@@ -272,6 +336,14 @@ $js_indicators_array .= '}';
                     b = i;
                     break;
                 }
+            }
+
+            if ( a - 1 < 0 ) {
+                a = min(2, data.length);
+            }
+
+            if ( b - 1 < 0 ) {
+                b = min(2, data.length);
             }
 
             var x0 = data[a-1]['x'];    var y0 = data[a-1]['y'];
@@ -308,6 +380,11 @@ $js_indicators_array .= '}';
         }
 
         function aggiornaGraficiPerDimensione(dim) {
+            if ( lista == null || lista == 'undefined' ||
+                    lista[dim] == null || lista[dim] == 'undefined' ) {
+                return false;
+            }
+
             var max_tr = 0;
             var comp_validi = new Array();
             var comp_errore = new Array();
@@ -315,7 +392,8 @@ $js_indicators_array .= '}';
             for (var c = 1; c <= Object.keys(lista[dim]).length; c++) {
                 if ( sonoIndicatoriValidiPerComponente(dim, c) ) {
                     for (var i = 1; i <= Object.keys(lista[dim][c]['ind']).length; i++) {
-                        if (parseFloat(lista[dim][c]['ind'][i]['tr']) > max_tr) {
+                        if (parseFloat(lista[dim][c]['ind'][i]['tr']) > max_tr &&
+                                lista[dim][c]['ind'][i]['nat'] == modalitaIndicator.dinamica) {
                             max_tr = parseFloat(lista[dim][c]['ind'][i]['tr']);
                         }
                     }
@@ -458,8 +536,6 @@ $js_indicators_array .= '}';
             math_text = math_text.replace("{{__MAX_TR__}}", max_tr);
             math_text = math_text.replace("{{__RIS__}}",    ris.toFixed(2));
 
-            console.log(math_text);
-
             //$(msgs_id_class).append(int);
 
             $(msgs_id_class).append( "<div class='integral'><span class='nome' style='color: " + color + "'>LOR " + name + ":</span><br/>" + katex.renderToString(math_text, {displayMode: true}) + "</div>" );
@@ -571,19 +647,28 @@ $js_indicators_array .= '}';
             /**
              * Rendo cliccabili gli elementi della sidebar
              */
-            $(".mainmenu .item").click(function () {
+            $(".mainmenu a.item").click(function () {
                 $(".maingrid").hide();
                 $(".mainmenu .item").removeClass('active');
                 $(".dim-" + $(this).data('dim_id')).show();
                 $(this).addClass('active');
                 $('html, body').scrollTop(0);
 
+                if (dimensione_selezionata != -1) {
+                    avviaTimerSalvataggio();
+                }
+
                 dimensione_selezionata = parseInt(  $(this).data('dim_id') );
                 aggiornaGrafici();
+
+            });
+
+            $(".mainmenu div.item.nome").click(function () {
+                window.open("./index.php","_self");
             });
 
             // Clicco sul primo elemento della sidebar dopo aver caricato tutto
-            $(".mainmenu .item").first().click();
+            $(".mainmenu a.item").first().click();
 
             /**
              * Per ogni elemento di input, ad ogni sua modifica salvo la lista
@@ -594,6 +679,13 @@ $js_indicators_array .= '}';
                 var com     = $(this).data("com");
                 var ind     = $(this).data("ind");
                 var name    = $(this).attr("name");
+                var val     = $(this).val();
+
+                var regex = /[a-zA-Z]+/;
+                if ( val.match(regex) ) {
+                    $(this).val( lista[dim][com]['ind'][ind][name] );
+                    return false;
+                }
 
                 lista[dim][com]['ind'][ind][name] = $(this).val();
 
@@ -601,6 +693,27 @@ $js_indicators_array .= '}';
                 calcoliSuIndicatore(dim, com, ind);
 
                 avviaTimerSalvataggioEGraphRedraw();
+            });
+
+            $("th").each(function () {
+                $(this).popup();
+            });
+
+            $(".ui.selection.dropdown").dropdown({
+                onChange: function (value, text, selectedItem) {
+                    var input = selectedItem.parent().parent().find('input');
+
+                    var dim     = input.data("dim");
+                    var com     = input.data("com");
+                    var ind     = input.data("ind");
+                    var name    = input.attr("name");
+
+                    lista[dim][com]['ind'][ind][name] = parseInt( input.val() );
+                    aggiornaTabellaIndicatori();
+
+                    avviaTimerSalvataggioEGraphRedraw();
+
+                }
             });
 
             aggiornaTabellaIndicatori();
@@ -612,29 +725,35 @@ $js_indicators_array .= '}';
 <body>
 
 <div class="ui visible very inverted vertical sidebar menu mainmenu">
-    <a class="item" data-dim_id="1">
+    <div class="item nome">
+        <i class="caret left icon"></i>
+        <div class="text">
+            <?php echo $name; ?>
+        </div>
+    </div>
+
+    <a class="item" id="sel-dim1" data-dim_id="1">
         <i class="users icon"></i>1. Population and demographics
     </a>
-    <a class="item" data-dim_id="2">
+    <a class="item" id="sel-dim2" data-dim_id="2">
         <i class="tree icon"></i>2. Ecosystem and environmental
     </a>
-    <a class="item" data-dim_id="3">
+    <a class="item" id="sel-dim3" data-dim_id="3">
         <i class="travel icon"></i>3. Organized governmental services
     </a>
-    <a class="item" data-dim_id="4">
+    <a class="item" id="sel-dim4" data-dim_id="4">
         <i class="building outline icon"></i>4. Physical infrastructure
     </a>
-    <a class="item" data-dim_id="5">
+    <a class="item" id="sel-dim5" data-dim_id="5">
         <i class="university icon"></i>5. Lifestyle and community competence
     </a>
-    <a class="item" data-dim_id="6">
+    <a class="item" id="sel-dim6" data-dim_id="6">
         <i class="money icon"></i>6. Economic development
     </a>
-    <a class="item" data-dim_id="7">
+    <a class="item" id="sel-dim7" data-dim_id="7">
         <i class="map outline icon"></i>7. Social-cultural capital
     </a>
 </div>
-
 
 <?php
     /**
@@ -642,6 +761,10 @@ $js_indicators_array .= '}';
      */
     echo $html;
 ?>
+
+<div class="save-modal" style="display: none;">
+    Saving...
+</div>
 
 </body>
 </html>

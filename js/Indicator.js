@@ -41,7 +41,10 @@ Indicator.prototype = {
     
     getWeight: function (lista) {
         var indicator = lista[this.dim][this.com]['ind'][this.ind];
-        return Math.max(parseFloat(indicator['i']) / parseFloat(lista[this.dim][this.com]['total_i']), 0.000001);
+        if ( parseFloat(indicator['i']) == 0 ) {
+            return 1;
+        }
+        return parseFloat(indicator['i']) / parseFloat(lista[this.dim][this.com]['total_i']);
     }
 
 }

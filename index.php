@@ -26,11 +26,14 @@
         $(document).ready(function() {
             $(".scenario-row").click(function () {
                 $("#form_filename").val( $(this).data("filename") );
+                $("#form_name").val( $(this).data("name") );
+                $("#form_action").val( "1" );
                 $("#form_scenario").submit();
             });
 
             $(".btn_new_scenario").click(function () {
-                $("#form_filename").val( $("#new_filename").val() );
+                $("#form_name").val( $("#new_name").val() );
+                $("#form_action").val( "2" );
                 $("#form_scenario").submit();
             });
         });
@@ -60,15 +63,17 @@
                     <?php
 
                     $directory 	= getcwd() . '/scenario/';
-                    $files 		= array_diff( scandir($directory), array('..', '.'));
-
-                    $giornali = array();
+                    $files 		= array_diff( scandir($directory), array('..', '.', '.DS_Store'));
 
                     foreach ($files as $file) {
+                        $json           = file_get_contents($directory . $file);
+                        $filecontent    = json_decode($json, true);
+                        $filename = $filecontent['filename'];
+                        $name     = $filecontent['name'];
                         echo '<tr>';
-                        echo '<td class="collapsing scenario-row" data-filename="' . $file . '">';
+                        echo '<td class="collapsing scenario-row" data-filename="' . $filename . '" data-name="' . $name . '">';
                         echo '<i class="folder icon"></i>';
-                        echo str_replace(array("_", ".json"), array(" ", ""), $file);
+                        echo $name;
                         echo '</td>';
                         echo '</tr>';
                     }
@@ -84,7 +89,7 @@
             </div>
             <div class="center aligned column">
                <div class="ui fluid input">
-                   <input type="text" name="name" id="new_filename" placeholder="Name">
+                   <input type="text" name="name" id="new_name" placeholder="Name">
                </div>
                 <button class="ui labeled icon button btn_new_scenario" type="submit">
                     <i class="plus icon"></i>
@@ -97,7 +102,9 @@
 </div>
 
 <form action="./people.php" method="POST" id="form_scenario">
-    <input type="text" id="form_filename" name="filename" hidden>
+    <input type="text" id="form_filename"   name="filename" hidden>
+    <input type="text" id="form_name"       name="name"     hidden>
+    <input type="text" id="form_action"     name="action"   hidden>
 </form>
 </body>
 </html>

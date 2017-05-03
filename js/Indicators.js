@@ -25,7 +25,7 @@ function Indicators() {
 Indicators.prototype = {
     constructor: Indicators,
 
-    caricaLista: 	function(filename) {
+    caricaLista: 	function(name, filename) {
         var that = this;
         this.modalita = modalitaAPIIndicators.caricaLista;
         that.lanciaCallbackInizio();
@@ -33,7 +33,7 @@ Indicators.prototype = {
         $.ajax({
             type: "GET",
             url: "./ajax/indicators.php",
-            data: {filename: filename},
+            data: {name : name, filename: filename},
             cache: false,
             success: function(html) {
                 var json = false;
@@ -63,7 +63,7 @@ Indicators.prototype = {
         });
     },
 
-    salvaLista: function( filename, list ) {
+    salvaLista: function( name, filename, list, dim_selected ) {
         var that = this;
         this.modalita = modalitaAPIIndicators.salvaLista;
         that.lanciaCallbackInizio();
@@ -71,10 +71,10 @@ Indicators.prototype = {
         $.ajax({
             type: "POST",
             url: "./ajax/indicators.php",
-            data: { filename : filename, lista : JSON.stringify(list)},
+            data: { name : name, filename : filename, lista : JSON.stringify(list), dim_selected : dim_selected },
             cache: false,
             success: function(html) {
-                console.log(html);
+                //console.log(html);
                 var json = false;
                 try {
                     json = $.parseJSON(html);

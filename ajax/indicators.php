@@ -48,22 +48,51 @@ if ( !isset($reqVars) ) {
     die( json_encode($arrayReturn) );
 }
 
-$filename = '../scenario/' . $reqVars['filename'];
+if ( !isset($reqVars['filename']) ) {
+    die( json_encode($arrayReturn) );
+}
+
+$nome           = isset($reqVars['name']) ? ucwords($reqVars['name']) : "nome_file";
+$filename       = '../scenario/' . $reqVars['filename'];
+$dim_selected   = isset($reqVars['dim_selected']) ? intval( $reqVars['dim_selected'] ) : 1;
+$dim_selected   = max($dim_selected, 1);
+$dim_selected   = min($dim_selected, 7);
+
+$file_content = array(  "name"          => $nome,
+                        "lista"         => null,
+                        "filename"      => $filename,
+                        "dim_selected"  => $dim_selected );
 
 if ($method == 'GET') {
 
     $json = file_get_contents($filename);
+
+    if ($json === FALSE) {
+        $arrayReturn['result'] = $file_content;
+    } else {
+        $arrayReturn['result'] = json_decode($json, true);
+    }
+
     $arrayReturn['status'] = 0;
-    $arrayReturn['result'] = json_decode($json, true);
 
 } else if ($method == 'POST'){
 
     if ( isset($reqVars['lista']) ) {
         $lista = json_decode($reqVars['lista'], true);
-        file_put_contents($filename, json_encode($lista));
-        $arrayReturn['status'] = 0;
+
+        $file_content["lista"] = $lista;
+
+        $err = file_put_contents($filename, json_encode($file_content));
+
+        if ($err === FALSE) {
+            $arrayReturn['desc'] = 'Errore durante il salvataggio del file (cod. 1)';
+            die( json_encode($arrayReturn) );
+        }
+
+        $arrayReturn['desc']    = 'Salvataggio avvenuto correttamente';
+        $arrayReturn['status']  = 0;
     } else {
-        $arrayReturn['desc'] = 'Errore durante il salvataggio del file';
+        $arrayReturn['desc'] = 'Errore durante la gestione del file del file (cod. 2)';
     }
 }
 
