@@ -11,6 +11,10 @@ Main Menu
     cursor: pointer;
 }
 
+.ui.vertical.menu > .item:last-child:last-child {
+    border-top: 10px rgba(255, 255, 255, .2) solid;
+}
+
 .ui.vertical.menu.mainmenu div.item.nome > i.icon {
     float: none;
     margin-top: auto;

@@ -154,7 +154,8 @@ foreach ($dimensions as $dim_id => $dim) {
     $js_indicators_array = rtrim($js_indicators_array,", ");
 
     $dim_replace = array(   '{{__DIM_ID__}}'                => $dim_id,
-                            '{{__COMPONENTS_CONTENT__}}'    => $com_html );
+                            '{{__COMPONENTS_CONTENT__}}'    => $com_html,
+                            '{{__CHART_NAME__}}'            => 'Chart');
 
     $dim_html = strtr($dim_html, $dim_replace);
 
@@ -197,6 +198,8 @@ $js_indicators_array .= '}';
         var ind_chart_list = null;
         var dimensione_selezionata = -1;
         var name = '<?php echo $name; ?>';
+        var common_resilience_curve_datasets = {};
+        var common_resilience_curve_datasets_max_tr = 0;
 
         var indicators = new Indicators();
         indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
@@ -379,32 +382,71 @@ $js_indicators_array .= '}';
             return space;
         }
 
+        function hexToRGB(hex, alpha) {
+            var r = parseInt(hex.slice(1, 3), 16),
+                g = parseInt(hex.slice(3, 5), 16),
+                b = parseInt(hex.slice(5, 7), 16);
+
+            if (alpha) {
+                return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+            } else {
+                return "rgb(" + r + ", " + g + ", " + b + ")";
+            }
+        }
+
+
         function aggiornaGraficiPerDimensione(dim) {
-            if ( lista == null || lista == 'undefined' ||
-                    lista[dim] == null || lista[dim] == 'undefined' ) {
+
+            if (dim == 8) {
+                aggiornaGraficoCommonResilienceCurve();
+                return;
+            }
+
+            if (lista == null || lista == 'undefined' ||
+                lista[dim] == null || lista[dim] == 'undefined') {
                 return false;
             }
 
-            var max_tr = 0;
+            var max_tr      = 0;
+            var max_tr_dim  = 0;
             var comp_validi = new Array();
             var comp_errore = new Array();
 
-            for (var c = 1; c <= Object.keys(lista[dim]).length; c++) {
-                if ( sonoIndicatoriValidiPerComponente(dim, c) ) {
-                    for (var i = 1; i <= Object.keys(lista[dim][c]['ind']).length; i++) {
-                        if (parseFloat(lista[dim][c]['ind'][i]['tr']) > max_tr &&
-                                lista[dim][c]['ind'][i]['nat'] == modalitaIndicator.dinamica) {
-                            max_tr = parseFloat(lista[dim][c]['ind'][i]['tr']);
-                        }
-                    }
-                    comp_validi.push(c);
-                } else {
-                    comp_errore.push(c);
-                }
+            /**
+             * Il max_tr lo cerco ovunque, così è più semplice plottare la common
+             * resilience curve, mentre i componenti validi li considero solo per la
+             * dimensione corrente
+             */
 
+            for (var d = 1; d <= 7; d++) {
+
+                for (var c = 1; c <= Object.keys(lista[d]).length; c++) {
+                    if (sonoIndicatoriValidiPerComponente(d, c)) {
+                        for (var i = 1; i <= Object.keys(lista[d][c]['ind']).length; i++) {
+                            var t = parseFloat(lista[d][c]['ind'][i]['tr']);
+
+                            if (lista[d][c]['ind'][i]['nat'] == modalitaIndicator.dinamica) {
+                                max_tr = Math.max(max_tr, t);
+
+                                if ( d == dim ) { max_tr_dim = Math.max(max_tr_dim, t); }
+                            }
+                        }
+
+                        if ( d == dim ) { comp_validi.push(c); }
+
+                    } else {
+
+                        if ( d == dim ) { comp_errore.push(c); }
+
+                    }
+                }
             }
 
             max_tr = Math.max(max_tr, 10);
+
+            max_tr_dim = Math.max(max_tr_dim, 10);
+
+            common_resilience_curve_datasets_max_tr = Math.max(max_tr, common_resilience_curve_datasets_max_tr);
 
             mostraMessaggiDiErrorePerIlGrafico(dim, comp_errore, comp_validi);
 
@@ -430,11 +472,12 @@ $js_indicators_array .= '}';
                     label: lista[dim][c]['name'],
                     id : c,
                     lineTension: 0.1,
-                    borderColor: lista[dim][c]['color'],
+                    borderColor: hexToRGB(lista[dim][c]['color'], 0.5),
                     fill: false,
-                    pointRadius: 1,
-                    pointHitRadius: 1,
-                    pointHoverRadius: 1
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: 1
                 };
 
                 var data = new Array();
@@ -467,9 +510,10 @@ $js_indicators_array .= '}';
                         lineTension: 0.5,
                         borderColor: 'black',
                         fill: false,
-                        pointRadius: 1,
-                        pointHitRadius: 1,
-                        pointHoverRadius: 1
+                        pointRadius: 0,
+                        pointHitRadius: 0,
+                        pointHoverRadius: 0,
+                        borderWidth: 3
                     };
 
 
@@ -492,12 +536,153 @@ $js_indicators_array .= '}';
                     var integral = 100 - (trapz(data, 0, max_tr)/max_tr);
                     mostraValoreIntegrale(dim, 'All components', '#000000', max_tr, integral);
                     datasets.push(dataset);
+
+                    common_resilience_curve_datasets[dim] = data;
+
                 }
 
-
-                createChart(ind_chart_list[dim]['graph_id'], datasets, -span, max_tr + span);
+                var span_dim = Math.floor(max_tr_dim * 0.1);
+                createChart(ind_chart_list[dim]['graph_id'], datasets, -span_dim, max_tr_dim + span_dim);
             }
 
+        }
+
+        function dimDataFromId(id) {
+            var dim_id_name = { 1 : {   name    : 'Population and demographics',
+                                        color   : '#D95C5C',
+                                        i       : 2 },
+                                2 : {   name    : 'Ecosystem and environmental',
+                                        color   : '#E07B53',
+                                        i       : 2 },
+                                3 : {   name    : 'Organized governmental services',
+                                        color   : '#F2C61F',
+                                        i       : 3 },
+                                4 : {   name    : 'Physical infrastructure',
+                                        color   : '#B5CC18',
+                                        i       : 3 },
+                                5 : {   name    : 'Lifestyle and community competence',
+                                        color   : '#5BBD72',
+                                        i       : 1 },
+                                6 : {   name    : 'Economic development',
+                                        color   : '#00B5AD',
+                                        i       : 3 },
+                                7 : {   name    : 'Social-cultural capital',
+                                        color   : '#3B83C0',
+                                        i       : 2 } };
+            return dim_id_name[id];
+        }
+        
+        function aggiornaGraficoCommonResilienceCurve() {
+            var msgs_id_class = ".dim-8 .plot .messaggi";
+            $(msgs_id_class).html("");
+
+            common_resilience_curve_datasets_max_tr = 0;
+            common_resilience_curve_datasets        = {};
+
+            var datasets = new Array();
+
+            var max_length = 0;
+            var valid_dim_count = 0;
+
+            /**
+             * Aggiungo i 7 grafici delle varie dimensioni
+             */
+            for (var dim = 1; dim < 8; dim++) {
+                aggiornaGraficiPerDimensione(dim);
+
+                var dataset = {
+                    label: dimDataFromId(dim)['name'],
+                    lineTension: 0.5,
+                    borderColor: dimDataFromId(dim)['color'],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: 1
+                };
+
+                if ( common_resilience_curve_datasets.hasOwnProperty(dim) ) {
+                    dataset['data'] = common_resilience_curve_datasets[dim];
+                    datasets.push(dataset);
+
+                    max_length = common_resilience_curve_datasets[dim].length;
+                    valid_dim_count++;
+
+                    var integral = 100 - (trapz(common_resilience_curve_datasets[dim], 0, common_resilience_curve_datasets_max_tr) / common_resilience_curve_datasets_max_tr);
+                    mostraValoreIntegrale(8, dimDataFromId(dim)['name'], dimDataFromId(dim)['color'], common_resilience_curve_datasets_max_tr, integral);
+
+                }
+
+            }
+
+            /**
+             * Aggiungo il grafico finale
+             */
+
+            if ( valid_dim_count > 1 ) {
+                var dataset = {
+                    label: 'Common Resilience Curve',
+                    lineTension: 0.5,
+                    borderColor: 'black',
+                    fill: false,
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: 2
+                };
+
+                var datasetArea = {
+                    label: '',
+                    lineTension: 0.5,
+                    borderColor: 'black',
+                    fill: true,
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                    borderWidth: 0.1,
+                    showLine: true
+                };
+
+                var data        = new Array();
+                var dataArea    = new Array();
+
+                for (var i = 0; i < max_length; i++) {
+
+                    var x_t     = 0;
+                    var y_val   = 0;
+                    var total_i = 0;
+
+                    for (var dim = 1; dim < 8; dim++) {
+
+                        if (common_resilience_curve_datasets.hasOwnProperty(dim)) {
+                            var elem = common_resilience_curve_datasets[dim][i];
+                            x_t = elem['x'];
+                            y_val += elem['y'] * dimDataFromId(dim)['i'];
+                            total_i += dimDataFromId(dim)['i'];
+                        }
+                    }
+
+                    data.push({x: x_t, y: y_val / total_i});
+
+                    if ( x_t >= 0 && x_t <= common_resilience_curve_datasets_max_tr) {
+                        dataArea.push({x: x_t, y: y_val / total_i});
+                    }
+
+                }
+
+                dataset['data'] = data;
+                datasetArea['data'] = dataArea;
+                datasets.push(dataset);
+                datasets.push(datasetArea);
+
+                var integral = 100 - (trapz(data, 0, common_resilience_curve_datasets_max_tr) / common_resilience_curve_datasets_max_tr);
+                mostraValoreIntegrale(8, 'Common Resilience Curve', '#000000', common_resilience_curve_datasets_max_tr, integral);
+
+
+            }
+
+            var span = Math.floor( common_resilience_curve_datasets_max_tr * 0.1 );
+            createChart('#chart_8', datasets, -span, common_resilience_curve_datasets_max_tr + span);
         }
 
         function mostraMessaggiDiErrorePerIlGrafico(dim, comp_errore, comp_validi) {
@@ -618,7 +803,10 @@ $js_indicators_array .= '}';
                         position : 'bottom',
                         labels : {
                             boxWidth : 1,
-                            padding : 20
+                            padding : 20,
+                            filter : function (item, char_data) {
+                                return (item.text.length > 0);
+                            }
                         }
                     },
                     tooltips: {
@@ -753,13 +941,28 @@ $js_indicators_array .= '}';
     <a class="item" id="sel-dim7" data-dim_id="7">
         <i class="map outline icon"></i>7. Social-cultural capital
     </a>
+
+    <a class="item" id="sel-dim8" data-dim_id="8">
+        <i class="area chart icon"></i>The community resilience curve
+    </a>
 </div>
 
 <?php
-    /**
-     * Stampo a schermo tutti gli elementi del Framework PEOPLES
-     */
-    echo $html;
+/**
+ * Stampo a schermo tutti gli elementi del Framework PEOPLES
+ */
+echo $html;
+?>
+
+<?php
+
+$com_res_curve = $dimension_content;
+$com_res_curve = str_replace("{{__COMPONENTS_CONTENT__}}", "", $com_res_curve);
+$com_res_curve = str_replace("{{__DIM_ID__}}", "8", $com_res_curve);
+$com_res_curve = str_replace("{{__CHART_NAME__}}", "The Community Resilience Curve", $com_res_curve);
+$com_res_curve = str_replace("<div class=\"ui divider\"></div>", "", $com_res_curve);
+
+echo $com_res_curve;
 ?>
 
 <div class="save-modal" style="display: none;">
