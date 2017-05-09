@@ -836,17 +836,18 @@ $js_indicators_array .= '}';
              * Rendo cliccabili gli elementi della sidebar
              */
             $(".mainmenu a.item").click(function () {
+                var new_dim = parseInt(  $(this).data('dim_id') );
                 $(".maingrid").hide();
                 $(".mainmenu .item").removeClass('active');
-                $(".dim-" + $(this).data('dim_id')).show();
+                $(".dim-" + new_dim).show();
                 $(this).addClass('active');
                 $('html, body').scrollTop(0);
 
-                if (dimensione_selezionata != -1) {
+                if (dimensione_selezionata != -1 && new_dim != 8) {
                     avviaTimerSalvataggio();
                 }
 
-                dimensione_selezionata = parseInt(  $(this).data('dim_id') );
+                dimensione_selezionata = new_dim;
                 aggiornaGrafici();
 
             });
