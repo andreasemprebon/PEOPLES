@@ -212,7 +212,7 @@ $js_indicators_array .= '}';
         indicators.callbackErrore   = 'azioneGestioneIndicatorsTerminataConErrore';
         indicators.caricaLista(name, '<?php echo $filename; ?>' );
 
-        function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
+        function azioneGestioneIndicatorsTerminataConErrore(modalita, result) {
             $(".save-modal").html(result);
             setTimeout(function() {
                 $(".save-modal").fadeOut(500);
