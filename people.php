@@ -9,7 +9,7 @@
  */
 
 // Leggo il contenuto del file con gli indicatori
-$filename = "./indicators/indicators.json";
+$filename = "./indicators/indicators_auto.json";
 $handle = fopen($filename, "r");
 $contents = fread($handle, filesize($filename));
 fclose($handle);
@@ -116,6 +116,11 @@ foreach ($dimensions as $dim_id => $dim) {
         foreach ($com['indicators'] as $ind_id => $ind) {
             $ind_id_for_html = str_replace(".", "-", $ind['id']);
 
+            $info_text = "";
+            if ( isset($ind['info']) && strlen($ind['info']) > 0 ) {
+                $info_text = "<i class='info circle icon popup' data-content='" . $ind['info'] . "'></i>";
+            }
+
             $ind_replace = array(   '{{__NAME__}}'          => $ind['name'],
                                     '{{__MEASURE__}}'       => $ind['measure'],
                                     '{{__ID__}}'            => $ind['id'],
@@ -124,7 +129,8 @@ foreach ($dimensions as $dim_id => $dim) {
                                     '{{__NAT__}}'           => $ind['nat'],
                                     '{{__DIM_ID__}}'        => $dim_id,
                                     '{{__COM_ID__}}'        => $com_id,
-                                    '{{__IND_ID__}}'        => $ind_id);
+                                    '{{__IND_ID__}}'        => $ind_id,
+                                    '{{__INFO__}}'          => $info_text);
 
             $ind_html = $indicator_content;
 
@@ -209,7 +215,32 @@ $js_indicators_array .= '}';
             if ( modalita == modalitaAPIIndicators.caricaLista ) {
                 if (result !== null) {
                     name                    = result.name;
-                    lista                   = result.lista;
+
+                    for (var d = 1; d <= Object.keys(result['lista']).length; d++) {
+                        for (var c = 1; c <= Object.keys(result['lista'][d]).length; c++) {
+                            for (var i = 1; i <= Object.keys(result['lista'][d][c]['ind']).length; i++) {
+                                lista[d][c]['ind'][i] = result['lista'][d][c]['ind'][i];
+                            }
+                        }
+                    }
+
+                    for (var d = 1; d <= Object.keys(lista).length; d++) {
+                        for (var c = 1; c <= Object.keys(lista[d]).length; c++) {
+
+                            if ( !result['lista'][d].hasOwnProperty(c) ) {
+                                delete lista[d][c];
+                                c = 1;
+                            }
+
+                            for (var i = 1; i <= Object.keys(lista[d][c]['ind']).length; i++) {
+                                if ( !result['lista'][d][c]['ind'].hasOwnProperty(i) ) {
+                                    delete lista[d][c]['ind'][i];
+                                    i = 1;
+                                }
+                            }
+                        }
+                    }
+
                     $("#sel-dim" + result.dim_selected).click();
                 }
                 aggiornaTabellaIndicatori(true);
@@ -885,6 +916,10 @@ $js_indicators_array .= '}';
             });
 
             $("th").each(function () {
+                $(this).popup();
+            });
+
+            $(".info.icon.popup").each(function () {
                 $(this).popup();
             });
 
