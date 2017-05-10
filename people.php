@@ -209,7 +209,15 @@ $js_indicators_array .= '}';
 
         var indicators = new Indicators();
         indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
+        indicators.callbackErrore   = 'azioneGestioneIndicatorsTerminataConErrore';
         indicators.caricaLista(name, '<?php echo $filename; ?>' );
+
+        function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
+            $(".save-modal").html(result);
+            setTimeout(function() {
+                $(".save-modal").fadeOut(500);
+            }, 10000);
+        }
 
         function azioneGestioneIndicatorsTerminataConSuccesso(modalita, result) {
             if ( modalita == modalitaAPIIndicators.caricaLista ) {
