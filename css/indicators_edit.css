@@ -1,5 +1,18 @@
-.ui.grid {
-    margin-top: 20px;
+.ui.grid .topbar {
+    background-color: #1B1C1D;
+    height: 50px;
+    color: #ffffff;
+}
+
+.ui.grid .topbar p {
+    font-size: 25px;
+    line-height: 50px;
+    margin-left: 35px;
+}
+
+.ui.grid .topbar p a {
+    color: #ffffff;
+    text-decoration: none;
 }
 
 .ui.celled.table tr td {

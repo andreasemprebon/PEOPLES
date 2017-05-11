@@ -46,7 +46,7 @@
         <div class="column">
             <h2 class="ui header component">
                 <div class="content ">
-                    <span class="text black">PEOPLES Framework</span>
+                    <span class="text black">PEOPLES Framework <a href="./indicators_edit.php"><i class="settings icon"></i></a></span>
                 </div>
             </h2>
         </div>

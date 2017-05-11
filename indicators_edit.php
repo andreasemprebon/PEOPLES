@@ -148,6 +148,7 @@ $dimensions = json_decode($contents, true);
             $("#indicator-form .importance-dropdown").dropdown('set selected', elem['importance']);
 
             $("#indicator-form .field").removeClass("disabled");
+            $("#indicator-form button").removeClass("disabled");
         }
 
         $(document).ready(function () {
@@ -189,6 +190,8 @@ $dimensions = json_decode($contents, true);
 
                 $("#indicators-table tbody").html("");
                 $("#indicator-form .field").addClass("disabled");
+                $("#indicator-form button").addClass("disabled");
+
 
                 popolaTabella("#components-table", arr, "Add Component", d);
 
@@ -330,6 +333,9 @@ $dimensions = json_decode($contents, true);
 
             popolaDimensions();
 
+            $("#indicator-form .field").addClass("disabled");
+            $("#indicator-form button").addClass("disabled");
+
             $(".ui.dropdown").dropdown();
 
         });
@@ -338,7 +344,19 @@ $dimensions = json_decode($contents, true);
 </head>
 <body>
 
+
 <div class="ui grid center centered">
+
+    <div class="sixteen wide column">
+        <div class="topbar">
+            <p>
+                <a href="./index.php">
+                    <i class="caret left icon"></i>
+                </a>
+                PEOPLES Indicators Editor
+            </p>
+        </div>
+    </div>
 
     <div class="three wide column">
         <table class="ui very basic collapsing celled table" id="dimensions-table">
