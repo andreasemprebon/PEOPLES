@@ -15,6 +15,11 @@ $contents = fread($handle, filesize($filename));
 fclose($handle);
 $dimensions = json_decode($contents, true);
 
+$filename = "./template/sidebar_content.html";
+$handle = fopen($filename, "r");
+$sidebar_content = fread($handle, filesize($filename));
+fclose($handle);
+
 //Leggo i template
 $filename = "./template/dimension_content.html";
 $handle = fopen($filename, "r");
@@ -56,6 +61,7 @@ if ($action == 2) {
  * prima che venga stampato a scherm
  */
 $html = "";
+$sidebar_html = "";
 
 /**
  * Contiene un array associativo che verrà caricato in javascript
@@ -75,6 +81,11 @@ $color_array = array(   "red"       => "#D95C5C",
 $color_array_names = array_keys($color_array);
 
 $color_array_size = count($color_array);
+
+/**
+ * Icone per la sidebar
+ */
+$icon_array = array("users", "travel", "building outline", "university", "money", "map outline");
 
 foreach ($dimensions as $dim_id => $dim) {
 
@@ -164,6 +175,12 @@ foreach ($dimensions as $dim_id => $dim) {
                             '{{__CHART_NAME__}}'            => 'Chart');
 
     $dim_html = strtr($dim_html, $dim_replace);
+
+    $sidebar_replace = array(   '{{__DIM_ID__}}'  => $dim_id,
+                                '{{__NAME__}}'    => $dim['name'],
+                                '{{__ICON__}}'    => $icon_array[($dim_id-1) % count($icon_array)]);
+    $sidebar_html .= strtr($sidebar_content, $sidebar_replace);
+
 
     $html .= $dim_html;
 
@@ -964,27 +981,9 @@ $js_indicators_array .= '}';
         </div>
     </div>
 
-    <a class="item" id="sel-dim1" data-dim_id="1">
-        <i class="users icon"></i>1. Population and demographics
-    </a>
-    <a class="item" id="sel-dim2" data-dim_id="2">
-        <i class="tree icon"></i>2. Ecosystem and environmental
-    </a>
-    <a class="item" id="sel-dim3" data-dim_id="3">
-        <i class="travel icon"></i>3. Organized governmental services
-    </a>
-    <a class="item" id="sel-dim4" data-dim_id="4">
-        <i class="building outline icon"></i>4. Physical infrastructure
-    </a>
-    <a class="item" id="sel-dim5" data-dim_id="5">
-        <i class="university icon"></i>5. Lifestyle and community competence
-    </a>
-    <a class="item" id="sel-dim6" data-dim_id="6">
-        <i class="money icon"></i>6. Economic development
-    </a>
-    <a class="item" id="sel-dim7" data-dim_id="7">
-        <i class="map outline icon"></i>7. Social-cultural capital
-    </a>
+    <?php
+        echo $sidebar_html;
+    ?>
 
     <a class="item" id="sel-dim8" data-dim_id="8">
         <i class="area chart icon"></i>The community resilience curve

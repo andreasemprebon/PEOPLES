@@ -108,6 +108,20 @@ $dimensions = json_decode($contents, true);
 
         }
 
+        function popolaDimensions() {
+            var arr = new Array();
+            for (var d = 1; d <= Object.keys(indicators).length; d++) {
+                arr.push({
+                    name: indicators[d]['name'],
+                    dim: d,
+                    com: null,
+                    ind: null
+                });
+
+            }
+            popolaTabella("#dimensions-table", arr, "Add Dimension");
+        }
+
         function popolaIndicatorForm(d, c, i) {
 
             if ( indicators[d]['components'][c] == 'undefined' ) {
@@ -138,6 +152,26 @@ $dimensions = json_decode($contents, true);
 
         $(document).ready(function () {
 
+            $("#dimensions-table").on('click', 'tr td button', function () {
+                var d = $(this).data('dim');
+                $("#new-dimensions-form input[name='dim']").val( d );
+
+                $("#dimension-modal").modal({
+                    onDeny    : function(){
+
+                    },
+                    onApprove : function() {
+                        console.log("Approve");
+                        var l = Object.keys(indicators).length;
+                        indicators[l+1] = {     'name'       : $("#new-dimension-form input[name='name']").val(),
+                                                'importance' : $("#new-dimension-form input[name='importance']").val(),
+                                                'components' : {},
+                                                'id'         : (l+1)};
+                        popolaDimensions();
+                        avviaTimerSalvataggio();
+                    }
+                }).modal("show");
+            });
 
             $("#dimensions-table").on('click', 'tr td', function () {
                 var arr = new Array();
@@ -272,13 +306,20 @@ $dimensions = json_decode($contents, true);
 
                     },
                     onApprove : function() {
-                        if ( d != null && c != null ) {
-                            if (i == null) {
-                                delete indicators[d]['components'][c];
-                                $("#dimensions-table tr td")[d - 1].click();
+                        if ( d != null ) {
+
+                            if ( c != null ) {
+                                if (i == null) {
+                                    delete indicators[d]['components'][c];
+                                    $("#dimensions-table tr td")[d - 1].click();
+                                } else {
+                                    delete indicators[d]['components'][c]['indicators'][i];
+                                    $("#components-table tr td")[c - 1].click();
+                                }
                             } else {
-                                delete indicators[d]['components'][c]['indicators'][i];
-                                $("#components-table tr td")[c - 1].click();
+                                delete indicators[d];
+                                popolaDimensions();
+                                $("#dimensions-table tr td")[0].click();
                             }
 
                             avviaTimerSalvataggio();
@@ -287,17 +328,7 @@ $dimensions = json_decode($contents, true);
                 }).modal("show");
             });
 
-            var arr = new Array();
-            for (var d = 1; d <= Object.keys(indicators).length; d++) {
-                arr.push({
-                    name: indicators[d]['name'],
-                    dim: d,
-                    com: null,
-                    ind: null
-                });
-
-            }
-            popolaTabella("#dimensions-table", arr);
+            popolaDimensions();
 
             $(".ui.dropdown").dropdown();
 
@@ -377,6 +408,43 @@ $dimensions = json_decode($contents, true);
 
 </div>
 
+
+<div class="ui modal" id="dimension-modal">
+    <i class="close icon"></i>
+    <div class="header">
+        Add Dimension
+    </div>
+    <div class="content">
+        <form class="ui form fluid" id="new-dimension-form">
+            <input type="hidden" name="dim">
+            <div class="field">
+                <label>Name</label>
+                <input type="text" name="name" placeholder="">
+            </div>
+            <div class="field">
+                <div class="ui selection dropdown importance-dropdown">
+                    <input type="hidden" name="importance">
+                    <i class="dropdown icon"></i>
+                    <div class="default text">Importance</div>
+                    <div class="menu">
+                        <div class="item" data-value="1">1</div>
+                        <div class="item" data-value="2">2</div>
+                        <div class="item" data-value="3">3</div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="actions">
+        <div class="ui black deny button">
+            Cancel
+        </div>
+        <div class="ui positive right labeled icon button">
+            Add Dimension
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
 
 <div class="ui modal" id="component-modal">
     <i class="close icon"></i>
