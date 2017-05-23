@@ -771,7 +771,8 @@ $js_indicators_array .= '}';
             var msgs_id_class = ".dim-" + dim + " .plot .messaggi";
 
             var int = "<div class='integral''></div>";
-            var math_text = "\\int_{0}^{{{__MAX_TR__}}} \\frac{100 - Q(x)}{{{__MAX_TR__}}}dx = {{__RIS__}}\\%";
+            //var math_text = "\\int_{0}^{{{__MAX_TR__}}} \\frac{100 - Q(x)}{{{__MAX_TR__}}}dx = {{__RIS__}}\\%";
+            var math_text = "\\int_{0}^{T_r(max)} \\frac{100 - Q(x)}{T_r(max)}dx = {{__RIS__}}\\%";
 
             math_text = math_text.replace("{{__MAX_TR__}}", max_tr);
             math_text = math_text.replace("{{__MAX_TR__}}", max_tr);
