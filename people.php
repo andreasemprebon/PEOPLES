@@ -4,6 +4,17 @@
  * Date: 29/04/17
  */
 
+session_start();
+
+if ( !isset($_SESSION['user_id']) || $_SESSION['user_id'] <= 0 ) {
+    header('Location: ./login.php');
+    die();
+}
+
+require_once( dirname(__FILE__) . '/database/DatabasePeople.php');
+
+$databasePeople = new DatabasePeople();
+
 /**
  * LETTURA FILE
  */
@@ -37,23 +48,18 @@ $indicator_content = fread($handle, filesize($filename));
 fclose($handle);
 
 
-$filename   = $_POST['filename'];
-$name       = $_POST['name'];
-$action     = intval( $_POST['action'] );
+$name           = $_POST['name'];
+$scenario_id    = intval( $_POST['id'] );
+$user_id        = $_SESSION['user_id'];
 
-// Se sto creando un nuovo file, gli assegno un nome casuale
-if ($action == 2) {
-    function generateRandomString($length = 10) {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $charactersLength = strlen($characters);
-        $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
-            $randomString .= $characters[rand(0, $charactersLength - 1)];
-        }
-        return $randomString;
+if ($scenario_id < 0) {
+    $result = $databasePeople->aggiungiScenario($name , $user_id);
+
+    if ($result['error']) {
+        die($result['desc']);
     }
 
-    $filename = generateRandomString(15) . "_" . time() . ".json";
+    $scenario_id = intval( $result['result'] );
 }
 
 /**
@@ -227,7 +233,7 @@ $js_indicators_array .= '}';
         var indicators = new Indicators();
         indicators.callbackSuccesso = 'azioneGestioneIndicatorsTerminataConSuccesso';
         indicators.callbackErrore   = 'azioneGestioneIndicatorsTerminataConErrore';
-        indicators.caricaLista(name, '<?php echo $filename; ?>' );
+        indicators.caricaLista(name, '<?php echo $scenario_id; ?>' );
 
         function azioneGestioneIndicatorsTerminataConErrore(modalita, result) {
             $(".save-modal").html(result);
@@ -297,7 +303,7 @@ $js_indicators_array .= '}';
         function salvaListaIndicatori() {
             $(".save-modal").html("Saving...");
             $(".save-modal").fadeIn(500);
-            indicators.salvaLista(name, '<?php echo $filename; ?>', lista, dimensione_selezionata );
+            indicators.salvaLista(name, '<?php echo $scenario_id; ?>', lista, dimensione_selezionata );
         }
 
         function aggiornaGrafici() {

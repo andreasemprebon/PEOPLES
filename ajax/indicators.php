@@ -6,6 +6,14 @@
  * Time: 11:03
  */
 
+session_start();
+
+if ( !isset($_SESSION['user_id']) || $_SESSION['user_id'] <= 0 ) {
+    die();
+}
+
+$user_id = intval( $_SESSION['user_id'] );
+
 $arrayReturn = array(	'status' 	=> 1,
                         'desc'		=> 'Errore sconosciuto',
                         'result' 	=> NULL );
@@ -48,29 +56,33 @@ if ( !isset($reqVars) ) {
     die( json_encode($arrayReturn) );
 }
 
-if ( !isset($reqVars['filename']) ) {
+if ( !isset($reqVars['id']) ) {
     die( json_encode($arrayReturn) );
 }
 
 $nome           = isset($reqVars['name']) ? ucwords($reqVars['name']) : "nome_file";
-$filename       = '../scenario/' . $reqVars['filename'];
+$scenario_id    = $reqVars['id'];
 $dim_selected   = isset($reqVars['dim_selected']) ? intval( $reqVars['dim_selected'] ) : 1;
 $dim_selected   = max($dim_selected, 1);
 $dim_selected   = min($dim_selected, 7);
 
 $file_content = array(  "name"          => $nome,
                         "lista"         => null,
-                        "filename"      => $filename,
+                        "id"            => $scenario_id,
                         "dim_selected"  => $dim_selected );
+
+require_once( dirname(__FILE__) . '/../database/DatabasePeople.php');
+
+$databasePeople = new DatabasePeople();
 
 if ($method == 'GET') {
 
-    $json = file_get_contents($filename);
+    $result = $databasePeople->ottieniScenario($scenario_id, $user_id);
 
-    if ($json === FALSE) {
+    if ($result['error'] || $result['result'] == NULL) {
         $arrayReturn['result'] = $file_content;
     } else {
-        $arrayReturn['result'] = json_decode($json, true);
+        $arrayReturn['result'] = json_decode($result['result'], true);
     }
 
     $arrayReturn['status'] = 0;
@@ -82,9 +94,10 @@ if ($method == 'GET') {
 
         $file_content["lista"] = $lista;
 
-        $err = file_put_contents($filename, json_encode($file_content));
+        //$err = file_put_contents($filename, json_encode($file_content));
+        $result = $databasePeople->modificaScenario(json_encode($file_content), $scenario_id, $user_id);
 
-        if ($err === FALSE) {
+        if ($result['error'] || $result['result'] == NULL) {
             $arrayReturn['desc'] = 'Errore durante il salvataggio del file (cod. 1)';
             die( json_encode($arrayReturn) );
         }

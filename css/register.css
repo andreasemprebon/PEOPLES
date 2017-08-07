@@ -19,22 +19,11 @@ div.column {
     margin-left: 10px;
 }
 
-table.table tbody .scenario-row {
-    cursor: pointer;
-}
-
-button.ui.btn_new_scenario {
+button.ui.btn_register {
     margin-top: 5px;
     width: 100%;
 }
 
-.login-info {
-    font-size: 15px;
-}
-
-.ui.header.component .login-info a {
-    font-size: 15px;
-    color: #FFFFFF;
-    top: 0;
-    padding: 5px;
+.ui.fluid.input {
+    margin-top: 5px;
 }
